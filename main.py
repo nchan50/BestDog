@@ -1,7 +1,9 @@
 Web VPython 3.2
 
+scene.fov = pi/3.5
+scene.userzoom = False
 scene.autoscale = False
-sphere(pos=vector(0,0,0),texture="https://raw.githubusercontent.com/nchan50/BestDog/blob/main/the_noble_hot_dog.png",radius=200,shininess=0)
+cone(pos=vector(0,-110,0), axis=vec(0,1,0), texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/the_noble_hot_dog%20(1).png",length=250,radius=175,shininess=0)
 
 dogs = []
 
