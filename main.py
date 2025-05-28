@@ -1,15 +1,24 @@
 Web VPython 3.2
 
-scene.camera.pos = vec(100, 0, 0)
-scene.camera.axis = vec(-100, 0, 0)
-scene.fov = pi/3.5
+scene.camera.pos = vec(-100, 0, -100)
+scene.camera.axis = vec(100, 0, 100)
+scene.fov = pi/5
 scene.autoscale = False
 SCALE = 5
 
 dogs = []
-background = cone(pos=vec(0, -1.5 * scene.camera.pos.mag *  SCALE, 0), axis=vec(0, 1,0), texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/the_noble_hot_dog%20(1).png",length=2.5 * scene.camera.pos.mag * SCALE, radius=1.75 * scene.camera.pos.mag * SCALE)
+background = cone(pos=vec(0, -1.25 * scene.camera.pos.mag *  SCALE, 0), axis=vec(0, 1,0), texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/the_noble_hot_dog%20(1).png",length=2.5 * scene.camera.pos.mag * SCALE, radius=0.75 * scene.camera.pos.mag * SCALE)
 
+all_presets = []
 immutable = True
+
+def presets(evt):
+    evt.color = color.white
+    evt.background = color.black
+    for button in all_presets:
+        if button != evt and button.color == color.white:
+            button.color = color.black
+            button.background = color.white
 
 def create_dog():
     global immutable
@@ -35,7 +44,19 @@ def adjust_dog(evt):
 def save_dog():
     global immutable
     immutable = True
-    
+
+scene.title = "Presets: \n"
+all_presets.append(button(text="One Hotdog", pos=scene.title_anchor, bind=presets))
+all_presets.append(button(text="Hotdogs in Series", pos=scene.title_anchor, bind=presets))
+all_presets.append(button(text="Hotdogs in Parallel", pos=scene.title_anchor, bind=presets))
+all_presets.append(button(text="Hotdog and Resistor in Series", pos=scene.title_anchor, bind=presets))
+all_presets.append(button(text="Hotdog and Resistor in Parallel", pos=scene.title_anchor, bind=presets))
+scene.append_to_title('\n')
+all_presets.append(button(text="Hotdog and Capacitor in Series", pos=scene.title_anchor, bind=presets))
+all_presets.append(button(text="Hotdog and Capacitor in Parallel", pos=scene.title_anchor, bind=presets))
+all_presets.append(button(text="Hotdog and Inductor in Series", pos=scene.title_anchor, bind=presets))
+all_presets.append(button(text="Hotdog and Inductor in Parallel", pos=scene.title_anchor, bind=presets))
+
 scene.caption = 'Create Your Hot Dog: '
 button(bind = create_dog, text= 'Create me!')
 scene.append_to_caption('\n')
@@ -55,7 +76,7 @@ while True:
     camera_pos = scene.camera.pos
     cone_closest = vec(camera_pos.x/(2 + a), (camera_pos.y - background.pos.x)/ (2 + a), 0)
     cone_closest.z = a * sqrt(cone_closest.x ** 2, cone_closest.y ** 2) + background.pos.x
-    if sqrt((cone_closest.x - camera_pos.x) ** 2 + (cone_closest.y - camera_pos.y) ** 2 + (cone_closest.z - camera_pos.z) ** 2) < background.radius / 3:
+    if sqrt((cone_closest.x - camera_pos.x) ** 2 + (cone_closest.y - camera_pos.y) ** 2 + (cone_closest.z - camera_pos.z) ** 2) < background.radius / 9:
         background.pos = vec(0, -1.5 * scene.camera.pos.mag *  SCALE, 0)
         background.length = 2.5 * scene.camera.pos.mag * SCALE
         background.radius = 1.75 * scene.camera.pos.mag * SCALE
