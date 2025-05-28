@@ -59,3 +59,109 @@ while True:
         background.pos = vec(0, -1.5 * scene.camera.pos.mag *  SCALE, 0)
         background.length = 2.5 * scene.camera.pos.mag * SCALE
         background.radius = 1.75 * scene.camera.pos.mag * SCALE
+
+
+
+
+
+
+## Circuit simulation
+
+#ordered list for both parallel and series
+#my_dog = Dog("Buddy", "Golden Retriever")
+
+##################
+# CONSTANTS
+
+HOTDOG_RESISTIVITY = 346 * 100 #Ohm/cm
+
+##################
+# CLASSES
+
+######
+# CIRCEL = CIRCUIT ELEMENT
+
+# possible types:
+#    battery
+#    resistor
+#    hotdog (resistor)
+#    capacitor (?)
+#    inductor (?)
+class CIRCEL: 
+    def __init__(self, type, val):
+        self.type = type
+        self.val = val
+        
+    def TYPE(self):
+        return self.type
+
+
+######
+# SERL = SERIES LIST
+
+class SERL:
+    def __init__(self, prev, next, element_list):
+        self.prev = prev
+    def add_element(elem):
+        if (elem.TYPE() == "resistor"):
+            self.element_list.append(elem)
+    def REQ(self):
+        req = 0;
+        for i in self.element_list:
+            if (i.TYPE() == "resistor"):
+                req += i.val;
+        return req
+ 
+ 
+######
+# SERL = PARALLEL LIST
+
+class PARL:
+    def __init__(self, prev, next, element_list):
+        self.prev = prev
+    def add_element(elem):
+        if (elem.TYPE() == "resistor"):
+            self.element_list.append(elem)
+    def REQ(self):
+        req = 0;
+        for i in self.element_list:
+            if (i.TYPE() == "resistor"):
+                req += 1 / i.val;
+        return 1 / req
+
+##################
+# OTHER FUNCTIONS
+
+def circleArea(radius):
+    return pi * (radius ** 2)
+
+def calc_resistance(resistivity,radius,length):
+    return resistivity * circleArea(radius) / length
+
+def create_dog(radius, length): #radius and length in METERS
+    hotdog = CIRCEL("resistor",HOTDOG_RESISTIVITY*pi*(radius**2)
+    return hotdog
+
+
+##################
+# CIRCUIT PRESETS
+
+
+# just battery and hotdog
+def batt_dog(voltage):
+    batt = CIRCEL("battery",voltage)
+    
+    hot_dog = CIRCEL("resistor",)
+    circ = SERL(batt,batt,[hotdog])
+
+
+#def preset_circuits()
+
+
+
+
+
+
+
+
+
