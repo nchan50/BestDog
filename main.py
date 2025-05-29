@@ -93,15 +93,27 @@ class CIRCEL:
 # SERL = SERIES LIST
 
 class SERL:
-    def __init__(self, prev, next, element_list):
+    def __init__(self, element_list):
+        self.element_list = element_list
+    def set_prev(prev):
         self.prev = prev
+    def set_next(next):
+        self.next = next
+    def set_pn(prev,next):
+        self.prev = prev
+        self.next = next
+    def get_pn():
+        return [self.prev,self.next]
+    def add_element(elem):
+        if (elem.TYPE() == "resistor"):
+            self.element_list.append(elem)
     def add_element(elem):
         if (elem.TYPE() == "resistor"):
             self.element_list.append(elem)
     def REQ(self):
         req = 0;
         for i in self.element_list:
-            if (i.TYPE() == "resistor"):
+            if (i.TYPE() in ["resistor","hotdog"]):
                 req += i.val;
         return req
  
@@ -110,20 +122,35 @@ class SERL:
 # SERL = PARALLEL LIST
 
 class PARL:
-    def __init__(self, prev, next, element_list):
+    def __init__(self,element_list):  
+    def set_prev(prev):
         self.prev = prev
+    def set_next(next):
+        self.next = next
+    def set_pn(prev,next):
+        self.prev = prev
+        self.next = next
+    def get_pn():
+        return [self.prev,self.next]
     def add_element(elem):
-        if (elem.TYPE() == "resistor"):
+        if (elem.TYPE() in ["resistor","hotdog"]):
             self.element_list.append(elem)
     def REQ(self):
         req = 0;
         for i in self.element_list:
-            if (i.TYPE() == "resistor"):
+            if (i.TYPE() in ["resistor","hotdog"]):
                 req += 1 / i.val;
         return 1 / req
 
+
 ##################
-# OTHER FUNCTIONS
+# COMPUTATIONAL FUNCTIONS
+
+# goes searching for  'start' until you get back to that spot
+#def kirchoff_loops(start):
+
+##################
+# HELPER FUNCTIONS
 
 def circleArea(radius):
     return pi * (radius ** 2)
@@ -132,7 +159,7 @@ def calc_resistance(resistivity,radius,length):
     return resistivity * circleArea(radius) / length
 
 def create_dog(radius, length): #radius and length in METERS
-    hotdog = CIRCEL("resistor",HOTDOG_RESISTIVITY*pi*(radius**2))
+    hotdog = CIRCEL("hotdog",HOTDOG_RESISTIVITY*pi*(radius**2))
     return hotdog
 
 
@@ -140,15 +167,17 @@ def create_dog(radius, length): #radius and length in METERS
 # CIRCUIT PRESETS
 
 
-# just battery and hotdog
+# battery and hotdog
 def batt_dog(voltage):
     batt = CIRCEL("battery",voltage)
+    hot_dog = create_dog(0.01,0.1)
+    circ = SERL([hotdog])
+    circ.set_pn(self,self)
+
+# Hotdogs in Series
+def batt_dogs(voltage):
     
-    hot_dog = CIRCEL("resistor",)
-    circ = SERL(batt,batt,[hotdog])
-
-
-#def preset_circuits()
+#def preset_circuits():
 
 def presets(evt):
     global change_presets
