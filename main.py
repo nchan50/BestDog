@@ -73,21 +73,14 @@ class CIRCEL:
     def __init__(self, type, val):
         self.type = type
         self.val = val
-        
-    def TYPE(self):
-        return self.type
 
 
 ######
 # SERL = SERIES LIST
 
 class SERL:
-    def __init__(self, element_list):
+    def __init__(self, prev, next, el_list):
         self.element_list = element_list
-    def set_prev(self,prev):
-        self.prev = prev
-    def set_next(self,next):
-        self.next = next
     def set_pn(self,prev,next):
         self.prev = prev
         self.next = next
@@ -110,10 +103,6 @@ class SERL:
 class PARL:
     def __init__(self,element_list): 
         self.element_list = element_list
-    def set_prev(self,prev):
-        self.prev = prev
-    def set_next(self,next):
-        self.next = next
     def set_pn(self,prev,next):
         self.prev = prev
         self.next = next
@@ -158,8 +147,9 @@ def create_dog(radius, length): #radius and length in METERS
 # One Hotdog
 def one_dog(voltage):
     batt = CIRCEL("battery",voltage)
-    hot_dog = create_dog(0.01,0.1)
+    dog = create_dog(0.01,0.1)
     circ = SERL(None,None,[batt])
+    circ.add_element(dog)
     circ.set_pn(circ,circ)
     return circ
 
@@ -185,9 +175,14 @@ def dogs_par(voltage,n):
     
 ######
 # Hotdog and Resistor in Series
-def dog_res_ser(voltage):
+def dog_res_ser(voltage,resistance):
     batt = CIRCEL("battery",voltage)
-    Resistor
+    res = CIRCEL("resistor",resistance)
+    dog = create_dog(1, 1)
+    circ = SERL(None,None,[batt,res,dog])
+    circ.set_pn(circ,circ)
+    return circ
+    
 
 ######
 # Hotdog and Resistor in Parallel
@@ -214,8 +209,7 @@ def dog_ind_ser(voltage):
 def dog_ind_par(voltage):
     batt = CIRCEL("battery",voltage)
 
-
-#def preset_circuits()
+#def preset_circuits():
 
 def create_visual(sp):
     elements = sp.get_list()
