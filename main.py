@@ -2,71 +2,60 @@ Web VPython 3.2
 
 ## Circuit simulation
 
-#ordered list for both parallel and series
-#my_dog = Dog("Buddy", "Golden Retriever")
-
 ##################
 # CONSTANTS
 
 SCALE = 5
+HOTDOG_RESISTIVITY = 346 * 100 #Ohm/cm
+
+##################
+# GLOBAL VARS
+
+dogs = []
+change_presets = []
+current_preset = []
+immutable = True
+
+##################
+# CAMERA/SCENE
+
 scene.camera.pos = vec(-30, 0, -30)
 scene.camera.axis = vec(30, 0, 30)
 scene.fov = pi/8
 scene.autoscale = False
 
-dogs = []
 background = cone(pos=vec(0, -1.25 * scene.camera.pos.mag *  SCALE, 0), axis=vec(0, 1,0), texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/the_noble_hot_dog%20(1).png",length=2.5 * scene.camera.pos.mag * SCALE, radius=0.75 * scene.camera.pos.mag * SCALE)
 
 battery = box(pos = vec(15, 0, -15), axis = vec(0, 1, 0), length = 10, height = 10, width = 6) 
-change_presets = []
-all_presets = {
-     'One Hotdog' :
-     [cylinder(pos = vec(-15, 0, 15) - vec(0, 1, 0) * 15/2, length=15, radius = 1, axis=vec(0, 1, 0), color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2, radius=1, color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) -  vec(0, 1, 0) * 15 / 2, radius=1, color=color.red, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) + vec(0, 20, 0), vec(-15, 0, 15) + vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) - vec(0, 20, 0), vec(-15, 0, 15) - vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False)],
-     'Hotdog and Resistor in Series':
-     [curve(pos = [vec(-6, 20, 6), vec(-6, 20, 6) + vec(0, 3, 0) + vec(1, 0, -1) * 1, vec(-6, 20, 6) - vec(0, 3, 0) + vec(1, 0, -1) * 2, vec(-6, 20, 6) + vec(0, 3, 0) + vec(1, 0, -1) * 3, vec(-6, 20, 6) - vec(0, 3, 0) + vec(1, 0, -1) * 4, vec(-6, 20, 6) + vec(0, 3, 0) + vec(1, 0, -1) * 5, vec(-6, 20, 6) - vec(0, 3, 0) + vec(1, 0, -1) * 6, vec(-6, 20, 6) + vec(0, 3, 0) + vec(1, 0, -1) * 7, vec(-6, 20, 6) - vec(0, 3, 0) + vec(1, 0, -1) * 8, vec(-6, 20, 6) + vec(1, 0, -1) * 9], radius = 0.6, visible = False),
-     cylinder(pos = vec(-15, 0, 15) - vec(0, 1, 0) * 15/2, length=15, radius = 1, axis=vec(0, 1, 0), color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2, radius=1, color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) -  vec(0, 1, 0) * 15 / 2, radius=1, color=color.red, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) + vec(0, 20, 0), vec(-6, 20, 6) + vec(1, 0, -1) * 9], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(-6, 20, 6), vec(-15, 0, 15) + vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) - vec(0, 20, 0), vec(-15, 0, 15) - vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False)],
-     'Hotdog and Capacitor in Parallel':
-     [box(pos = vec(1, 2, -1), axis = vec(0, 1, 0), length = 1, height = 10, width = 10, color = color.red, visible = False),
-     box(pos = vec(1, -2, -1), axis = vec(0, 1, 0), length = 1, height = 10, width = 10, color = color.blue, visible = False), 
-     cylinder(pos = vec(-15, 0, 15) - vec(0, 1, 0) * 15/2, length=15, radius = 1, axis=vec(0, 1, 0), color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2, radius=1, color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) -  vec(0, 1, 0) * 15 / 2, radius=1, color=color.red, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) + vec(0, 20, 0), vec(-15, 0, 15) + vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) - vec(0, 20, 0), vec(-15, 0, 15) - vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(1, 2, -1), vec(1, 20, -1)], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(1, -2, -1), vec(1, -20, -1)], color = color.yellow, radius = 0.3, visible = False)],
-     'Hotdog and Inductor in Series': 
-     [helix(pos = vec(-6, 20, 6), axis = vec(1, 0, -1), length = 13, coils = 12, radius = 4, thickness = 0.8, color = color.black, visible = False),
-     cylinder(pos = vec(-15, 0, 15) - vec(0, 1, 0) * 15/2, length=15, radius = 1, axis=vec(0, 1, 0), color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2, radius=1, color=color.red, visible = False),
-     sphere(pos= vec(-15, 0, 15) -  vec(0, 1, 0) * 15 / 2, radius=1, color=color.red, visible = False),
-     curve(pos = [vec(-6, 20, 6) + vec(1, 0, -1) * 9, vec(-6, 20, 6) + vec(1, 0, -1) * 9 + vec(1, 0, 1) * 3], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(-6, 20, 6), vec(-15, 0, 15) + vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(-6, 20, 6), vec(-15, 0, 15) + vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) + vec(0, 20, 0), vec(-6, 20, 6) + vec(1, 0, -1) * 9], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(-6, 20, 6) + vec(1, 0, 1) * 3, vec(-6, 20, 6)], color = color.yellow, radius = 0.3, visible = False),
-     curve(pos = [vec(15, 0, -15) + vec(0, 5, 0), vec(15, 0, -15) - vec(0, 20, 0), vec(-15, 0, 15) - vec(0, 20, 0), vec(-15, 0, 15) +  vec(0, 1, 0) * 15/ 2], color = color.yellow, radius = 0.3, visible = False)]
-     }
-     
-current_preset = []
-     
+
+
+##################
+# GUI
+
+
+######
+# PRESET BUTTONS
+
+scene.title = "Presets: \n"
+change_presets.append(button(text="One Hotdog", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdogs in Series", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdogs in Parallel", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Resistor in Series", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Resistor in Parallel", pos=scene.title_anchor, bind=presets))
+scene.append_to_title('\n') # so the buttons dont clip out
+change_presets.append(button(text="Hotdog and Capacitor in Series", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Capacitor in Parallel", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Inductor in Series", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Inductor in Parallel", pos=scene.title_anchor, bind=presets))
+
+######
+# GRAPHS
+
 temp = graph(title='Hotdog 1', xtitle='Time(s)', ytitle='Energy Dissipated(J)', xmin=0, ymin=0, xmax = 120, ymax = 500)
 a = gcurve(graph=temp)
 for x in range(0, 120):
     a.plot(x, 150 - 50 ^ x)
 
-immutable = True
-
-HOTDOG_RESISTIVITY = 346 * 100 #Ohm/cm
 
 ##################
 # CLASSES
@@ -93,47 +82,71 @@ class CIRCEL:
 # SERL = SERIES LIST
 
 class SERL:
-    def __init__(self, prev, next, element_list):
+    def __init__(self, element_list):
+        self.element_list = element_list
+    def set_prev(self,prev):
         self.prev = prev
-    def add_element(elem):
+    def set_next(self,next):
+        self.next = next
+    def set_pn(self,prev,next):
+        self.prev = prev
+        self.next = next
+    def get_pn(self):
+        return [self.prev,self.next]
+    def add_element(self,elem):
         if (elem.TYPE() == "resistor"):
             self.element_list.append(elem)
     def REQ(self):
         req = 0;
         for i in self.element_list:
-            if (i.TYPE() == "resistor"):
+            if (i.TYPE() in ["resistor","hotdog"]):
                 req += i.val;
         return req
-    
  
  
 ######
 # SERL = PARALLEL LIST
 
 class PARL:
-    def __init__(self, prev, next, element_list):
+    def __init__(self,element_list): 
+        self.element_list = element_list
+    def set_prev(self,prev):
         self.prev = prev
-    def add_element(elem):
-        if (elem.TYPE() == "resistor"):
+    def set_next(self,next):
+        self.next = next
+    def set_pn(self,prev,next):
+        self.prev = prev
+        self.next = next
+    def get_pn(self):
+        return [self.prev,self.next]
+    def add_element(self,elem):
+        if (elem.TYPE() in ["resistor","hotdog"]):
             self.element_list.append(elem)
     def REQ(self):
         req = 0;
         for i in self.element_list:
-            if (i.TYPE() == "resistor"):
+            if (i.TYPE() in ["resistor","hotdog"]):
                 req += 1 / i.val;
         return 1 / req
 
-##################
-# OTHER FUNCTIONS
 
-def circleArea(radius):
+##################
+# COMPUTATIONAL FUNCTIONS
+
+# goes searching for  'start' until you get back to that spot
+#def kirchoff_loops(start):
+
+##################
+# HELPER FUNCTIONS
+
+def circle_area(radius):
     return pi * (radius ** 2)
 
 def calc_resistance(resistivity,radius,length):
     return resistivity * circleArea(radius) / length
 
 def create_dog(radius, length): #radius and length in METERS
-    hotdog = CIRCEL("resistor",HOTDOG_RESISTIVITY*pi*(radius**2))
+    hotdog = CIRCEL("hotdog",HOTDOG_RESISTIVITY*pi*(radius**2))
     return hotdog
 
 
@@ -141,12 +154,65 @@ def create_dog(radius, length): #radius and length in METERS
 # CIRCUIT PRESETS
 
 
-# just battery and hotdog
-def batt_dog(voltage):
+######
+# One Hotdog
+def one_dog(voltage):
     batt = CIRCEL("battery",voltage)
+    hot_dog = create_dog(0.01,0.1)
+    circ = SERL(None,None,[batt])
+    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdogs in Series
+def dogs_ser(voltage,n):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL(None,None,[batt])
+    for i in range(n):
+        circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
+    return circ
+     
+######
+# Hotdogs in Parallel
+def dogs_par(voltage,n):
+    batt = CIRCEL("battery",voltage)
+    circ = PARL(None,None,[batt])
+    for i in range(n):
+        circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
+    return circ
     
-    hot_dog = CIRCEL("resistor",)
-    circ = SERL(batt,batt,[hotdog])
+######
+# Hotdog and Resistor in Series
+def dog_res_ser(voltage):
+    batt = CIRCEL("battery",voltage)
+    Resistor
+
+######
+# Hotdog and Resistor in Parallel
+def dog_res_par(voltage):
+    batt = CIRCEL("battery",voltage)
+
+######
+# Hotdog and Capacitor in Series
+def dog_cap_ser(voltage):
+    batt = CIRCEL("battery",voltage)
+
+######
+# Hotdog and Capacitor in Parallel
+def dog_cap_par(voltage):
+    batt = CIRCEL("battery",voltage)
+
+######
+# Hotdog and Inductor in Series
+def dog_ind_ser(voltage):
+    batt = CIRCEL("battery",voltage)
+
+######
+# Hotdog and Inductor in Parallel
+def dog_ind_par(voltage):
+    batt = CIRCEL("battery",voltage)
 
 
 #def preset_circuits()
