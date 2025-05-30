@@ -93,64 +93,38 @@ class CIRCEL:
 # SERL = SERIES LIST
 
 class SERL:
-    def __init__(self, element_list):
-        self.element_list = element_list
-    def set_prev(prev):
+    def __init__(self, prev, next, element_list):
         self.prev = prev
-    def set_next(next):
-        self.next = next
-    def set_pn(prev,next):
-        self.prev = prev
-        self.next = next
-    def get_pn():
-        return [self.prev,self.next]
-    def add_element(elem):
-        if (elem.TYPE() == "resistor"):
-            self.element_list.append(elem)
     def add_element(elem):
         if (elem.TYPE() == "resistor"):
             self.element_list.append(elem)
     def REQ(self):
         req = 0;
         for i in self.element_list:
-            if (i.TYPE() in ["resistor","hotdog"]):
+            if (i.TYPE() == "resistor"):
                 req += i.val;
         return req
+    
  
  
 ######
 # SERL = PARALLEL LIST
 
 class PARL:
-    def __init__(self,element_list):  
-    def set_prev(prev):
+    def __init__(self, prev, next, element_list):
         self.prev = prev
-    def set_next(next):
-        self.next = next
-    def set_pn(prev,next):
-        self.prev = prev
-        self.next = next
-    def get_pn():
-        return [self.prev,self.next]
     def add_element(elem):
-        if (elem.TYPE() in ["resistor","hotdog"]):
+        if (elem.TYPE() == "resistor"):
             self.element_list.append(elem)
     def REQ(self):
         req = 0;
         for i in self.element_list:
-            if (i.TYPE() in ["resistor","hotdog"]):
+            if (i.TYPE() == "resistor"):
                 req += 1 / i.val;
         return 1 / req
 
-
 ##################
-# COMPUTATIONAL FUNCTIONS
-
-# goes searching for  'start' until you get back to that spot
-#def kirchoff_loops(start):
-
-##################
-# HELPER FUNCTIONS
+# OTHER FUNCTIONS
 
 def circleArea(radius):
     return pi * (radius ** 2)
@@ -159,7 +133,7 @@ def calc_resistance(resistivity,radius,length):
     return resistivity * circleArea(radius) / length
 
 def create_dog(radius, length): #radius and length in METERS
-    hotdog = CIRCEL("hotdog",HOTDOG_RESISTIVITY*pi*(radius**2))
+    hotdog = CIRCEL("resistor",HOTDOG_RESISTIVITY*pi*(radius**2))
     return hotdog
 
 
@@ -167,17 +141,48 @@ def create_dog(radius, length): #radius and length in METERS
 # CIRCUIT PRESETS
 
 
-# battery and hotdog
+# just battery and hotdog
 def batt_dog(voltage):
     batt = CIRCEL("battery",voltage)
-    hot_dog = create_dog(0.01,0.1)
-    circ = SERL([hotdog])
-    circ.set_pn(self,self)
-
-# Hotdogs in Series
-def batt_dogs(voltage):
     
-#def preset_circuits():
+    hot_dog = CIRCEL("resistor",)
+    circ = SERL(batt,batt,[hotdog])
+
+
+#def preset_circuits()
+
+def create_visual(sp):
+    elements = sp.get_list()
+    e_visual = [] 
+    for e in elements:
+        if isinstance(e, CIRCEL):
+            e_visuals.append(element_visual(e))
+        else:
+            e_visuals.append(create_visual(e))
+    return e_visual
+    
+def element_visual(e):
+    if e.type == 'hotdog':
+        L, R = e.get_value()
+        visual = [cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red), 
+        sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red),
+        sphere(pos= vec(L/2, 0, 0), radius = R, color = color.red)]
+    if e.type == 'battery':
+        V = e.get_value()
+        visual = [box(pos = vec(0 0, 0), axis = vec(1, 1, 1), length = V/sqrt(3), height = V/sqrt(3), width = V/sqrt(3))]
+    if e.type == 'resistor':
+        R = e.get_value()
+        visual = [cylinder(pos = vec(-4, 0, 0), length = 8, radius = 1, axis = vec(1, 0, 0), color = color.cyan), 
+        sphere(pos = vec(-4, 0, 0), radius = 1.5, color = color.cyan),
+        sphere(pos= vec(4, 0, 0), radius = 1.5, color = color.cyan)
+    if e.type == 'capacitor':
+        C = e.get_value()
+        visual = [box(pos = vec(0, 2, 0), axis = vec(0, 1, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.red),
+         box(pos = vec(0, -2, 0), axis = vec(0, -1, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.blue)]
+    if e.type == 'inductor':
+        L = e.get_value()
+        visual = [helix(pos = vec(-5, 0, 0), axis = (1, 0, 0), length = 10, coil = sqrt(L), radius = 4, thickness = 0.8, color = color.black)]
+    return visual
 
 def presets(evt):
     global change_presets
