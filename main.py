@@ -185,37 +185,62 @@ def dogs_par(voltage,n):
     
 ######
 # Hotdog and Resistor in Series
-def dog_res_ser(voltage):
+def dog_res_ser(voltage,resistance):
     batt = CIRCEL("battery",voltage)
-    Resistor
+    circ = SERL(None,None,[batt])
+    circ.add_element(CIRCLEL("resistor",resistance))
+    circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
 
 ######
 # Hotdog and Resistor in Parallel
-def dog_res_par(voltage):
+def dog_res_par(voltage,resistance):
     batt = CIRCEL("battery",voltage)
+    circ = PARL(None,None,[batt])
+    circ.add_element(CIRCLEL("resistor",resistance))
+    circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
+    return circ
 
 ######
 # Hotdog and Capacitor in Series
 def dog_cap_ser(voltage):
     batt = CIRCEL("battery",voltage)
+    circ = SERL(None,None,[batt])
+    circ.add_element(CIRCLEL("capacitor",capacitance))
+    circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
+    return circ
 
 ######
 # Hotdog and Capacitor in Parallel
-def dog_cap_par(voltage):
+def dog_cap_par(voltage,capacitance):
     batt = CIRCEL("battery",voltage)
+    circ = PARL(None,None,[batt])
+    circ.add_element(CIRCLEL("capacitor",capacitance))
+    circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
+    return circ
 
 ######
 # Hotdog and Inductor in Series
-def dog_ind_ser(voltage):
+def dog_ind_ser(voltage,inductance):
     batt = CIRCEL("battery",voltage)
+    circ = SERL(None,None,[batt])
+    circ.add_element(CIRCLEL("inductor",inductance))
+    circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
+    return circ
 
 ######
 # Hotdog and Inductor in Parallel
 def dog_ind_par(voltage):
     batt = CIRCEL("battery",voltage)
-
-
-#def preset_circuits()
+    circ = PARL(None,None,[batt])
+    circ.add_element(CIRCLEL("inductor",inductance))
+    circ.add_element(create_dog(1, 1))
+    circ.set_pn(circ,circ)
+    return circ
 
 def create_visual(sp):
     elements = sp.get_list()
