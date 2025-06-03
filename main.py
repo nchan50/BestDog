@@ -49,6 +49,27 @@ change_presets.append(button(text="Hotdog and Inductor in Series", pos=scene.tit
 change_presets.append(button(text="Hotdog and Inductor in Parallel", pos=scene.title_anchor, bind=presets))
 
 ######
+# OTHER BUTTONS
+
+scene.caption = 'User Options: \n'
+scene.append_to_caption('Start Simulation: ')
+button(bind = temp, text= 'Turn on Battery')
+scene.append_to_caption('\nMake Your Own Hot Dog: ')
+button(bind = create_dog, text= 'Create!')
+button(bind = save_dog, text= 'Save!')
+button(bind = temp, text= 'Attatch to Circuit!')
+scene.append_to_caption('\n Adjust Your Hotdogs \n')
+rs = slider(bind = adjust_dog, max = 2, min = 0.25, step = 0.1, value = 1, id = 'r')
+scene.append_to_caption('Radius: ')
+rt = wtext(text='{:1.2f}'.format(rs.value))
+scene.append_to_caption(' cm\n')
+ls = slider(bind = adjust_dog, max = 30, min = 5, step = 0.1, value = 15, id = 'l')
+scene.append_to_caption('Length: ')
+lt = wtext(text='{:1.2f}'.format(ls.value))
+scene.append_to_caption(' cm\n')
+ev = winput(bind=temp, prompt='Adjust Circuit Element Values:', type='numeric')
+
+######
 # GRAPHS
 
 temp = graph(title='Hotdog 1', xtitle='Time(s)', ytitle='Energy Dissipated(J)', xmin=0, ymin=0, xmax = 120, ymax = 500)
@@ -59,6 +80,7 @@ for x in range(0, 120):
 
 ##################
 # CLASSES
+
 
 ######
 # CIRCEL = CIRCUIT ELEMENT
@@ -73,35 +95,28 @@ class CIRCEL:
     def __init__(self, type, val):
         self.type = type
         self.val = val
-        
-    def TYPE(self):
-        return self.type
+
 
 
 ######
 # SERL = SERIES LIST
 
 class SERL:
-    def __init__(self, element_list):
+    def __init__(self,element_list):
         self.element_list = element_list
-    def set_prev(self,prev):
-        self.prev = prev
-    def set_next(self,next):
-        self.next = next
+        self.type = "SERL"
     def set_pn(self,prev,next):
         self.prev = prev
         self.next = next
-    def get_pn(self):
-        return [self.prev,self.next]
     def add_element(self,elem):
-        if (elem.TYPE() == "resistor"):
-            self.element_list.append(elem)
-    def REQ(self):
-        req = 0;
-        for i in self.element_list:
-            if (i.TYPE() in ["resistor","hotdog"]):
-                req += i.val;
-        return req
+#        if (elem.type == "resistor"):
+        self.element_list.append(elem)
+#    def REQ(self):
+#        req = 0;
+#        for i in self.element_list:
+#            if (i.TYPE() in ["resistor","hotdog"]):
+#                req += i.val;
+#        return req
  
  
 ######
@@ -110,31 +125,60 @@ class SERL:
 class PARL:
     def __init__(self,element_list): 
         self.element_list = element_list
-    def set_prev(self,prev):
-        self.prev = prev
-    def set_next(self,next):
-        self.next = next
+        self.type = "PARL"
     def set_pn(self,prev,next):
         self.prev = prev
         self.next = next
-    def get_pn(self):
-        return [self.prev,self.next]
     def add_element(self,elem):
-        if (elem.TYPE() in ["resistor","hotdog"]):
-            self.element_list.append(elem)
-    def REQ(self):
-        req = 0;
-        for i in self.element_list:
-            if (i.TYPE() in ["resistor","hotdog"]):
-                req += 1 / i.val;
-        return 1 / req
+        self.element_list.append(elem)
+#    def REQ(self):
+#        req = 0;
+#        for i in self.element_list:
+#            if (i.TYPE() in ["resistor","hotdog"]):
+#                req += 1 / i.val;
+#        return 1 / req
 
 
 ##################
 # COMPUTATIONAL FUNCTIONS
 
+def calculate_paths(current,depth,og):
+#    print(0) #number of times func is called
+#    print(len(current.element_list))
+    if (depth < 0):
+        return 0
+    elif (current == og):
+#        print(current.type)
+        if current.type == "PARL":
+#            print(len(current.element_list))
+            return len(current.element_list)
+        elif current.type == "SERL":
+            return 1
+        else:
+            return -1
+    else:
+#        print(current.type)
+        if current.type == "PARL":
+#            print(len(current.element_list))
+            return len(current.element_list) * calculate_paths(next,depth-1,og)
+        elif current.type == "SERL":
+            return calculate_paths(next,depth-1,og)
+        else:
+            return -1
+            
+
+
 # goes searching for  'start' until you get back to that spot
-#def kirchoff_loops(start):
+
+#def kirchoff_loop(start,):
+#    path = []
+#    if start.type == "SERL":
+#        
+#    size = len(start.element_list)
+    
+    
+
+    
 
 ##################
 # HELPER FUNCTIONS
@@ -159,88 +203,111 @@ def create_dog(radius, length): #radius and length in METERS
 def one_dog(voltage):
     batt = CIRCEL("battery",voltage)
     hot_dog = create_dog(0.01,0.1)
-    circ = SERL(None,None,[batt])
-    circ.set_pn(circ,circ)
+    batt_circ = SERL([batt])
+    circ = SERL([hot_dog])
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
 
 ######
 # Hotdogs in Series
 def dogs_ser(voltage,n):
     batt = CIRCEL("battery",voltage)
-    circ = SERL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = SERL([])
     for i in range(n):
         circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
      
 ######
 # Hotdogs in Parallel
 def dogs_par(voltage,n):
     batt = CIRCEL("battery",voltage)
-    circ = PARL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = PARL([])
     for i in range(n):
         circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
     
 ######
 # Hotdog and Resistor in Series
 def dog_res_ser(voltage,resistance):
     batt = CIRCEL("battery",voltage)
-    circ = SERL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = SERL([])
     circ.add_element(CIRCLEL("resistor",resistance))
     circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
-
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
+    return circ
+    
 ######
 # Hotdog and Resistor in Parallel
 def dog_res_par(voltage,resistance):
     batt = CIRCEL("battery",voltage)
-    circ = PARL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = PARL([])
     circ.add_element(CIRCLEL("resistor",resistance))
     circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
 
 ######
 # Hotdog and Capacitor in Series
 def dog_cap_ser(voltage):
     batt = CIRCEL("battery",voltage)
-    circ = SERL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = SERL([])
     circ.add_element(CIRCLEL("capacitor",capacitance))
     circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
 
 ######
 # Hotdog and Capacitor in Parallel
 def dog_cap_par(voltage,capacitance):
     batt = CIRCEL("battery",voltage)
-    circ = PARL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = PARL([])
     circ.add_element(CIRCLEL("capacitor",capacitance))
     circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
 
 ######
 # Hotdog and Inductor in Series
 def dog_ind_ser(voltage,inductance):
     batt = CIRCEL("battery",voltage)
-    circ = SERL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = SERL([])
     circ.add_element(CIRCLEL("inductor",inductance))
     circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
 
 ######
 # Hotdog and Inductor in Parallel
 def dog_ind_par(voltage):
     batt = CIRCEL("battery",voltage)
-    circ = PARL(None,None,[batt])
+    batt_circ = SERL([batt])
+    circ = PARL([])
     circ.add_element(CIRCLEL("inductor",inductance))
     circ.add_element(create_dog(1, 1))
-    circ.set_pn(circ,circ)
+    circ.set_pn(batt_circ,batt_circ)
+    batt_circ.set_pn(circ,circ)
     return circ
+
+
+##################
+# CIRCUIT VISUALS
 
 def create_visual(sp):
     elements = sp.get_list()
