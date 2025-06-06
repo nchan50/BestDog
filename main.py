@@ -223,14 +223,23 @@ def dogs_ser(voltage,n):
      
 ######
 # Hotdogs in Parallel
+# def dogs_par(voltage,n):
+#     batt = CIRCEL("battery",voltage)
+#     batt_circ = SERL([batt])
+#     circ = PARL([])
+#     for i in range(n):
+#         circ.add_element(create_dog(1, 1))
+#     circ.set_pn(batt_circ,batt_circ)
+#     batt_circ.set_pn(circ,circ)
+#     return circ
 def dogs_par(voltage,n):
     batt = CIRCEL("battery",voltage)
-    batt_circ = SERL([batt])
-    circ = PARL([])
+    circ = SERL([batt])
+    par_circ = PARL([])
     for i in range(n):
-        circ.add_element(create_dog(1, 1))
-    circ.set_pn(batt_circ,batt_circ)
-    batt_circ.set_pn(circ,circ)
+        par_circ.add_element(CIRCEL("hotdog", (0.01, 0.1)))
+    circ.add_element(par_circ)
+    circ.set_pn(circ,circ)
     return circ
     
 ######
