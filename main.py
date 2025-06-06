@@ -26,8 +26,6 @@ scene.autoscale = False
 
 background = cone(pos=vec(0, -1.25 * scene.camera.pos.mag *  SCALE, 0), axis=vec(0, 1,0), texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/the_noble_hot_dog%20(1).png",length=2.5 * scene.camera.pos.mag * SCALE, radius=0.75 * scene.camera.pos.mag * SCALE)
 
-battery = box(pos = vec(15, 0, -15), axis = vec(0, 1, 0), length = 10, height = 10, width = 6) 
-
 
 ##################
 # GUI
