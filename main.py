@@ -308,39 +308,153 @@ def dog_ind_par(voltage):
 
 ##################
 # CIRCUIT VISUALS
-
-def create_visual(sp):
-    elements = sp.get_list()
-    e_visual = [] 
-    for e in elements:
-        if isinstance(e, CIRCEL):
-            e_visuals.append(element_visual(e))
-        else:
-            e_visuals.append(create_visual(e))
-    return e_visual
+def get_first_shape(e_visuals):
+    first = e_visuals[0]
+    if not isinstance(first, box):
+        first = get_first_shape(first)
+    return first
     
+def get_last_shape(e_visuals):
+    last = e_visuals[-1]
+    if not isinstance(last[0], box):
+        last = get_last_shape(last[-1])
+    else:
+        return last[0]
+    return last
+    
+def reposition(sub_e_visual, translation):
+    for item in sub_e_visual:
+        if not isinstance(item, (curve, box, cone, sphere, cylinder)):
+            reposition(item, translation)
+        else:
+            if isinstance(item, curve):
+                for n in range(item.npoints):
+                    item.modify(n, pos = item.point(n)['pos'] + translation)
+            else:
+                item.pos += translation
+                
 def element_visual(e):
     if e.type == 'hotdog':
-        L, R = e.get_value()
-        visual = [cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red), 
-        sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red),
-        sphere(pos= vec(L/2, 0, 0), radius = R, color = color.red)]
+        R, L = e.val
+        R *= 100
+        L *= 100
+        visual = [
+            box(pos = vec(0, 0, 0), length = L + 6, height = max(1.5, 2 * R), width = max(1.5, 2 * R), visible = False), 
+            cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red),
+            sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red),
+            sphere(pos= vec(L/2, 0, 0), radius = R, color = color.red),
+            cone(pos = vec(-L/2 - 3, 0, 0), axis = vec(1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255),
+            cone(pos = vec(L/2 + 3, 0, 0), axis = vec(-1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255)]
     if e.type == 'battery':
-        V = e.get_value()
-        visual = [box(pos = vec(0 0, 0), axis = vec(1, 1, 1), length = V/sqrt(3), height = V/sqrt(3), width = V/sqrt(3))]
+        V = e.val
+        visual = [
+            box(pos = vec(0, 0, 0), length = V/sqrt(3), height = V/sqrt(3), width = V/sqrt(3), visible = False),
+            box(pos = vec(0, 0, 0), axis = vec(1, 0, 0), length = V/sqrt(3), height = V/sqrt(3), width = V/sqrt(3))]
     if e.type == 'resistor':
-        R = e.get_value()
-        visual = [cylinder(pos = vec(-4, 0, 0), length = 8, radius = 1, axis = vec(1, 0, 0), color = color.cyan), 
-        sphere(pos = vec(-4, 0, 0), radius = 1.5, color = color.cyan),
-        sphere(pos= vec(4, 0, 0), radius = 1.5, color = color.cyan)
+        R = e.val
+        visual = [
+            box(pos = vec(0, 0, 0), length = 13.2, height = 5.2, width = 5.2, visible = False),
+            cylinder(pos = vec(-4, 0, 0), length = 8, radius = 2, axis = vec(1, 0, 0), color = color.cyan),
+            cylinder(pos = vec(-4.25, 0, 0), length = 0.5, radius = 2.6, axis = vec(1, 0, 0), color = color.black),
+            cylinder(pos = vec(-1.5, 0, 0), length = 0.5, radius = 2.1, axis = vec(1, 0, 0), color = color.black),
+            cylinder(pos = vec(0, 0, 0), length = 0.5, radius = 2.1, axis = vec(1, 0, 0), color = color.black),
+            cylinder(pos = vec(3.75, 0, 0), length = 0.5, radius = 2.6, axis = vec(1, 0, 0), color = color.black),
+            sphere(pos = vec(-4, 0, 0), radius = 2.5, color = color.cyan),
+            sphere(pos= vec(4, 0, 0), radius = 2.5, color = color.cyan)]
     if e.type == 'capacitor':
-        C = e.get_value()
-        visual = [box(pos = vec(0, 2, 0), axis = vec(0, 1, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.red),
-         box(pos = vec(0, -2, 0), axis = vec(0, -1, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.blue)]
+        C = e.val
+        visual = [
+            box(pos = vec(0, 0, 0), length = 8, height = C/sqrt(2), width = C/sqrt(2), visible = False),
+            box(pos = vec(2, 0, 0), axis = vec(1, 0, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.red),
+            box(pos = vec(-2, 0, 0), axis = vec(-1, 0, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.blue)]
     if e.type == 'inductor':
-        L = e.get_value()
-        visual = [helix(pos = vec(-5, 0, 0), axis = (1, 0, 0), length = 10, coil = sqrt(L), radius = 4, thickness = 0.8, color = color.black)]
+        L = e.val
+        visual = [
+            box(pos = vec(0, 0, 0), length = 10, height = 8, width = 8, visible = False),
+            helix(pos = vec(-5, 0, 0), axis = (1, 0, 0), length = 10, coil = sqrt(L), radius = 4, thickness = 0.8, color = color.black)]
     return visual
+                
+def create_visual(sp):
+    elements = sp.element_list
+    e_visuals = []
+    for e in elements:
+        if isinstance(e, CIRCEL):
+            element = element_visual(e)
+            if isinstance(sp, SERL):
+                try:
+                    prev_pos = e_visuals[-1][0].pos + vec(e_visuals[-1][0].length / 2, 0, 0)
+                    next_pos = prev_pos + vec(5, 0, 0)
+                    wire = [
+                        box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
+                        curve(pos = [prev_pos, next_pos], radius = 0.2, color = color.yellow)]
+                    for shape in element:
+                        shape.pos += next_pos + vec(element[0].length / 2, 0, 0)
+                    e_visuals.append(wire)
+                except TypeError:
+                    pass
+            if isinstance(sp, PARL):
+                try:
+                    prev_box = e_visuals[-1][0]
+                    current_box = element[0]
+                    wire = [
+                        box(pos = prev_box.pos + (vec(0, (prev_box.height + current_box.height) / 2 + 5, 0)) / 2, length = 0, height = (prev_box.height + current_box.height) / 2 + 5, width = 0.4, visible = False), 
+                        curve(pos = [prev_box.pos, prev_box.pos, prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0),
+                        prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0), prev_box.pos, prev_box.pos], radius = 0.2, color = color.yellow)]
+                    for shape in element:
+                        shape.pos += prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0)
+                    e_visuals.append(wire)
+                except TypeError:
+                    pass
+            e_visuals.append(element)
+        else:
+            sub_e_visuals = create_visual(e)
+            last = get_last_shape(e_visuals)
+            prev_pos = last.pos + vec(last.length / 2, 0, 0)
+            next_pos = prev_pos + vec(5, 0, 0)
+            reposition(sub_e_visuals, next_pos + vec(get_first_shape(sub_e_visuals).length / 2, 0, 0))
+            wire = [box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
+            curve(pos = [prev_pos, next_pos], radius = 0.2, color = color.yellow)]
+            e_visuals.append(wire)
+            if isinstance(e, PARL):
+                sub_e_visuals = [sub_e_visuals[0]] + reversed(sub_e_visuals[1:])
+            e_visuals.append(sub_e_visuals)
+                
+    first, last = get_first_shape(e_visuals), get_last_shape(e_visuals)
+    max_l, max_h, max_w, min_l, min_h, min_w  = 0, 0, 0, 0, 0, 0
+    for element in e_visuals:
+        max_l = max(max_l, element[0].pos.x + element[0].length / 2)
+        max_h = max(max_h, element[0].pos.y + element[0].height / 2)
+        max_w = max(max_w, element[0].pos.z + element[0].width / 2)
+        min_l = min(min_l, element[0].pos.x - element[0].length / 2)
+        min_h = min(min_h, element[0].pos.y - element[0].height / 2)
+        min_w = min(min_w, element[0].pos.z - element[0].width / 2)    
+    l, w, h = max_l - min_l, max_w - min_w, max_h - min_h
+    if isinstance(sp, PARL):
+        l += 4
+        for element in e_visuals:
+            if isinstance(element[1], curve):
+                element[0].length = l
+                for n in range(element[1].npoints):
+                    if n == 1 or n == 2:
+                        element[1].modify(n, pos = element[1].point(n)['pos'] + vec(l / 2, 0, 0))
+                    if n == 3 or n == 4:
+                        element[1].modify(n, pos = element[1].point(n)['pos'] - vec(l / 2, 0, 0))
+        l += 0.4
+    reposition(e_visuals, -vec(max_l + min_l, max_h + min_h, max_w + min_w) / 2)
+    e_visuals.insert(0, box(pos = vec(0, 0, 0), length = l, height = h, width = w, visible = False))
+    return e_visuals
+    
+def circuit_loop(e_visuals):
+    last_shape = get_last_shape(e_visuals)
+    first_shape = get_first_shape(e_visuals[1:])
+    prev_pos = last_shape.pos + vec(last_shape.length / 2, 0, 0)
+    next_pos = first_shape.pos - vec(first_shape.length / 2, 0, 0)
+    wire = [
+        box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
+        curve(pos = [prev_pos, prev_pos + vec(5, 0, 0), prev_pos + vec(5, 0, 5), next_pos + vec(-5, 0, 5), next_pos + vec(-5, 0, 0), next_pos], radius = 0.2, color = color.yellow)]
+    e_visuals.append(wire)
+    return e_visuals
+    
 
 def presets(evt):
     global change_presets
@@ -358,7 +472,7 @@ def presets(evt):
     for item in current_preset:
         item.visible = True
 
-def create_dog():
+def dog_visual():
     global immutable
     if immutable:
         shaft = cylinder(length=15, radius = 1, axis=vec(1, 1, 1), color=color.red)
@@ -386,35 +500,8 @@ def save_dog():
 def temp():
     return
 
-scene.title = "Presets: \n"
-change_presets.append(button(text="One Hotdog", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdogs in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdogs in Parallel", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Resistor in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Resistor in Parallel", pos=scene.title_anchor, bind=presets))
-scene.append_to_title('\n')
-change_presets.append(button(text="Hotdog and Capacitor in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Capacitor in Parallel", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Inductor in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Inductor in Parallel", pos=scene.title_anchor, bind=presets))
 
-scene.caption = 'User Options: \n'
-scene.append_to_caption('Start Simulation: ')
-button(bind = temp, text= 'Turn on Battery')
-scene.append_to_caption('\nMake Your Own Hot Dog: ')
-button(bind = create_dog, text= 'Create!')
-button(bind = save_dog, text= 'Save!')
-button(bind = temp, text= 'Attatch to Circuit!')
-scene.append_to_caption('\n Adjust Your Hotdogs \n')
-rs = slider(bind = adjust_dog, max = 2, min = 0.25, step = 0.1, value = 1, id = 'r')
-scene.append_to_caption('Radius: ')
-rt = wtext(text='{:1.2f}'.format(rs.value))
-scene.append_to_caption(' cm\n')
-ls = slider(bind = adjust_dog, max = 30, min = 5, step = 0.1, value = 15, id = 'l')
-scene.append_to_caption('Length: ')
-lt = wtext(text='{:1.2f}'.format(ls.value))
-scene.append_to_caption(' cm\n')
-ev = winput(bind=temp, prompt='Adjust Circuit Element Values:', type='numeric')
+circuit_loop(create_visual(dogs_par(10, 3)))
     
 while True:
     rate(10)
