@@ -331,7 +331,7 @@ def get_last_shape(e_visuals):
     
 def reposition(sub_e_visual, translation):
     for item in sub_e_visual:
-        if not isinstance(item, (curve, box, cone, sphere, cylinder)):
+        if not isinstance(item, (curve, box, cone, sphere, helix, cylinder)):
             reposition(item, translation)
         else:
             if isinstance(item, curve):
@@ -339,14 +339,14 @@ def reposition(sub_e_visual, translation):
                     item.modify(n, pos = item.point(n)['pos'] + translation)
             else:
                 item.pos += translation
-                
+            
 def element_visual(e):
     if e.type == 'hotdog':
         R, L = e.val
         R *= 100
         L *= 100
         visual = [
-            box(pos = vec(0, 0, 0), length = L + 6, height = max(1.5, 2 * R), width = max(1.5, 2 * R), visible = False), 
+            box(pos = vec(0, 0, 0), length = L + 6, height = max(1.5, 2 * R), width = max(1.5, 2 * R), opacity = 0.5), 
             cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red),
             sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red),
             sphere(pos= vec(L/2, 0, 0), radius = R, color = color.red),
@@ -355,12 +355,12 @@ def element_visual(e):
     if e.type == 'battery':
         V = e.val
         visual = [
-            box(pos = vec(0, 0, 0), length = V/sqrt(3), height = V/sqrt(3), width = V/sqrt(3), visible = False),
-            box(pos = vec(0, 0, 0), axis = vec(1, 0, 0), length = V/sqrt(3), height = V/sqrt(3), width = V/sqrt(3))]
+            box(pos = vec(0, 0, 0), length = V, height = V, width = V, opacity = 0.5),
+            box(pos = vec(0, 0, 0), axis = vec(1, 0, 0), length = V, height = V, width = V)]
     if e.type == 'resistor':
         R = e.val
         visual = [
-            box(pos = vec(0, 0, 0), length = 13.2, height = 5.2, width = 5.2, visible = False),
+            box(pos = vec(0, 0, 0), length = 13.2, height = 5.2, width = 5.2, opacity = 0.5),
             cylinder(pos = vec(-4, 0, 0), length = 8, radius = 2, axis = vec(1, 0, 0), color = color.cyan),
             cylinder(pos = vec(-4.25, 0, 0), length = 0.5, radius = 2.6, axis = vec(1, 0, 0), color = color.black),
             cylinder(pos = vec(-1.5, 0, 0), length = 0.5, radius = 2.1, axis = vec(1, 0, 0), color = color.black),
@@ -371,16 +371,16 @@ def element_visual(e):
     if e.type == 'capacitor':
         C = e.val
         visual = [
-            box(pos = vec(0, 0, 0), length = 8, height = C/sqrt(2), width = C/sqrt(2), visible = False),
+            box(pos = vec(0, 0, 0), length = 8, height = C/sqrt(2), width = C/sqrt(2), opacity = 0.5),
             box(pos = vec(2, 0, 0), axis = vec(1, 0, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.red),
             box(pos = vec(-2, 0, 0), axis = vec(-1, 0, 0), length = 2, height = C/sqrt(2), width = C/sqrt(2), color = color.blue)]
     if e.type == 'inductor':
         L = e.val
         visual = [
-            box(pos = vec(0, 0, 0), length = 10, height = 8, width = 8, visible = False),
+            box(pos = vec(0, 0, 0), length = 10, height = 8, width = 8, opacity = 0.5),
             helix(pos = vec(-5, 0, 0), axis = (1, 0, 0), length = 10, coil = sqrt(L), radius = 4, thickness = 0.8, color = color.black)]
     return visual
-                
+            
 def create_visual(sp):
     elements = sp.element_list
     e_visuals = []
@@ -415,15 +415,29 @@ def create_visual(sp):
             e_visuals.append(element)
         else:
             sub_e_visuals = create_visual(e)
-            last = get_last_shape(e_visuals)
-            prev_pos = last.pos + vec(last.length / 2, 0, 0)
-            next_pos = prev_pos + vec(5, 0, 0)
-            reposition(sub_e_visuals, next_pos + vec(get_first_shape(sub_e_visuals).length / 2, 0, 0))
-            wire = [box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
-            curve(pos = [prev_pos, next_pos], radius = 0.2, color = color.yellow)]
-            e_visuals.append(wire)
+            prev_pos = vec(0, 0, 0)
+            try:
+                last = get_last_shape(e_visuals)
+                if isinstance(sp, SERL):
+                    prev_pos = last.pos + vec(last.length / 2, 0, 0)
+                    next_pos = prev_pos + vec(5, 0, 0)
+                    wire = [
+                        box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
+                        curve(pos = [prev_pos, next_pos], radius = 0.2, color = color.yellow)]
+                    e_visuals.append(wire)
+                    reposition(sub_e_visuals, next_pos + vec(get_first_shape(sub_e_visuals).length / 2, 0, 0))
+                if isinstance(sp, PARL):
+                    current_box = get_first_shape(sub_e_visuals)
+                    wire = [
+                        box(pos = last.pos + (vec(0, (last.height + current_box.height) / 2 + 5, 0)) / 2, length = 0, height = (last.height + current_box.height) / 2 + 5, width = 0.4, visible = False), 
+                        curve(pos = [last.pos, last.pos, last.pos + vec(0, (last.height + current_box.height) / 2 + 5, 0),
+                        last.pos + vec(0, (last.height + current_box.height) / 2 + 5, 0), last.pos, last.pos], radius = 0.2, color = color.yellow)]
+                    e_visuals.append(wire)
+                    reposition(sub_e_visuals, last.pos + vec(0, (last.height + current_box.height) / 2 + 5, 0))
+            except TypeError:
+                pass
             if isinstance(e, PARL):
-                sub_e_visuals = [sub_e_visuals[0]] + reversed(sub_e_visuals[1:])
+                sub_e_visuals = [sub_e_visuals[0]] + list(reversed(sub_e_visuals[1:]))
             e_visuals.append(sub_e_visuals)
                 
     first, last = get_first_shape(e_visuals), get_last_shape(e_visuals)
@@ -460,7 +474,21 @@ def circuit_loop(e_visuals):
         box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
         curve(pos = [prev_pos, prev_pos + vec(5, 0, 0), prev_pos + vec(5, 0, 5), next_pos + vec(-5, 0, 5), next_pos + vec(-5, 0, 0), next_pos], radius = 0.2, color = color.yellow)]
     e_visuals.append(wire)
-    return e_visuals
+    
+def make_circuit(circ):
+    circuit_loop(create_visual(circ))
+    
+def test():
+    circ = SERL([])
+    circ.add_element(CIRCEL('battery', 10))
+#    circ.add_element(CIRCEL('inductor', 10))
+#    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+#    circ.add_element(CIRCEL('capacitor', 10))
+#    circ.add_element(CIRCEL('resistor', 5))
+#    circ.add_element(CIRCEL('battery', 5))
+    return 0
+    
+make_circuit(test())
     
 
 def presets(evt):
