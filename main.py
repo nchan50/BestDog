@@ -506,9 +506,9 @@ def element_visual(e, create_mode):
         L *=  100
         visual = [
             box(pos = vec(0, 0, 0), length = L, height = max(1.5, 2 * R), width = max(1.5, 2 * R), opacity = 0), 
-            cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_raw_texture.png"),
-            sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_raw_cap.png"),
-            sphere(pos =  vec(L/2, 0, 0), radius = R, color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_raw_cap.png")]
+            cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red, color = vec(245, 214, 235) / 255),
+            sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red, color = vec(245, 214, 235) / 255),
+            sphere(pos =  vec(L/2, 0, 0), radius = R, color = color.red, color = vec(245, 214, 235) / 255)]
         if not create_mode:
             visual[0].length += 6
             visual.append(cone(pos = vec(-L/2 - 3, 0, 0), axis = vec(1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
