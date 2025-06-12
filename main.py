@@ -16,10 +16,9 @@ blanks = []
 blanks_visual = []
 externals = []
 externals_visual = []
+change_presets = []
 circuit = None
 circuit_visual = None
-change_presets = []
-current_preset = None
 frame_rate = 500
 start = False
 attatching = False
@@ -236,87 +235,142 @@ def create_dog(radius, length): #radius and length in METERS
 
 ##################
 # CIRCUIT PRESETS
+def one_dog(voltage):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+#    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdogs in Series
+def dogs_ser(voltage,n):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL([batt])
+    for i in range(n):
+        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+#    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdogs in Parallel
+def dogs_par(voltage,n):
+    batt = CIRCEL("battery",voltage)
+    circ = PARL([batt])
+    for i in range(n):
+        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+#    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdog and Resistor in Series
+def dog_res_ser(voltage,resistance):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(CIRCEL('resistor', resistance))
+#    circ.set_pn(circ,circ)
+    return circ
+    
+######
+# Hotdog and Resistor in Parallel
+def dog_res_par(voltage,resistance):
+    batt = CIRCEL("battery",voltage)
+    circ = PARL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(CIRCEL('resistor', resistance))
+#    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdog and Capacitor in Series
+def dog_cap_ser(voltage, capacitance):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(CIRCEL('capacitor', capacitance))
+#    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdog and Capacitor in Parallel
+def dog_cap_par(voltage,capacitance):
+    batt = CIRCEL("battery",voltage)
+    circ = PARL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(CIRCEL('capacitor', capacitance))
+#    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdog and Inductor in Series
+def dog_ind_ser(voltage,inductance):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(CIRCEL('inductor', inductance))
+#    circ.set_pn(circ,circ)
+    return circ
+
+######
+# Hotdog and Inductor in Parallel
+def dog_ind_par(voltage):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(CIRCEL('inductor', inductance))
+#    circ.set_pn(circ,circ)
+    return circ
 
 
 # Conencts presets to buttons
 def presets(evt):
+    global blanks
+    global blanks_visual
+    global circuit
+    global circuit_visual
+    global selected_circels
+    global selected_objects
+    global selected_labels
     global change_presets
-    global current_preset
-    global all_presets
-    evt.color = color.white
-    evt.background = color.black
-    for button in change_presets:
-        if button != evt and button.color == color.white:
-            button.color = color.black
-            button.background = color.white
-    for item in current_preset:
-        item.visible = False
-    current_preset = all_presets[evt.text]
-    for item in current_preset:
-        item.visible = True
-
-    
-# Different circuit models
-def test(mode):
-    circ = SERL([])
-    # All the elements in series
-    if mode == 0:
-        circ.add_element(CIRCEL('battery', 10))
-        circ.add_element(CIRCEL('battery', 10))
-        circ.add_element(CIRCEL('inductor', 10))
-        circ.add_element(CIRCEL('inductor', 10))
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        circ.add_element(CIRCEL('capacitor', 10))
-        circ.add_element(CIRCEL('capacitor', 10))
-        circ.add_element(CIRCEL('resistor', 5))
-        circ.add_element(CIRCEL('battery', 5))
-    # Hotdogs in a complex circuit
-    if mode == 1:
-        circ.add_element(CIRCEL('battery', 10))
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        par_1 = PARL([])
-        sub_par_1 = PARL([])
-        sub_par_2 = PARL([])
-        sub_ser_1 = SERL([])
-        sub_ser_2 = SERL([])
-        sub_par_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        sub_par_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        sub_par_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        sub_ser_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        sub_ser_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        sub_ser_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        sub_ser_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        sub_par_2.add_element(sub_ser_1)
-        par_1.add_element(sub_ser_2)
-        par_1.add_element(sub_par_1)
-        par_1.add_element(sub_par_2)
-        circ.add_element(par_1)
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    # Hotdogs in a compelx circuit
-    if mode == 2:
-        par_1 = PARL([])
-        circ.add_element(CIRCEL('battery', 10))
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        ser_1 = SERL([])
-        ser_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        ser_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        par_1.add_element(ser_1)
-        par_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        circ.add_element(par_1)
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    if mode == 3:
-        par_1 = PARL([])
-        circ.add_element(CIRCEL('battery', 10))
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        par_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        par_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        par_1.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-        circ.add_element(par_1)
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    return circ
-
-circuit = test(0)
-create_circuit(circuit)
+    if not start:
+        evt.color = color.white
+        evt.background = color.black
+        for button in change_presets:
+            if button != evt and button.color == color.white:
+                button.color = color.black
+                button.background = color.white
+        for i in range(len(selected_objects)):
+            if find_index(selected_objects[i], circuit_visual) != 0:
+                selected_circels.remove(selected_circels[i])
+                selected_objects.remove(selected_objects[i])
+                selected_labels[i].visible = False
+                selected_labels.remove(selected_labels[i])
+        blanks = []
+        blanks_visual = []
+        try:
+            remove_circuit(circuit_visual)
+        except TypeError:
+            pass
+        if evt.text == 'One Hotdog':
+            circuit = one_dog(10, 1)
+        if evt.text == 'Hotdogs in Series':
+            circuit = dogs_ser(10, 2)
+        if evt.text == 'Hotdogs in Parallel':
+            circuit = dogs_par(10, 2)
+        if evt.text == 'Hotdog and Resistor in Series':
+            circuit = dog_res_ser(10, 100)
+        if evt.text == 'Hotdog and Resistor in Parallel':
+            circuit = dog_res_par(10, 100)
+        if evt.text == 'Hotdog and Capacitor in Series':
+            circuit = dog_cap_ser(10, 10e-6)
+        if evt.text == 'Hotdog and Capacitor in Parallel':
+            circuit = dog_cap_par(10, 10e-6)
+        if evt.text == 'Hotdog and Inductor in Series':
+            circuit = dog_ind_ser(10, 10e-5)
+        if evt.text == 'Hotdog and Inductor in Parallel':
+            circuit = dog_cap_ser(10, 10e-5)
+        create_circuit(circuit)
 
 ##################
 # CIRCUIT VISUALS
@@ -531,12 +585,17 @@ def element_visual(e, create_mode):
             sphere(pos =  vec(3, 0, 0), radius = 1.5, color = color.cyan)]
     if e.type == 'capacitor':
         C = e.val
+        C *= 10e6
+        C = min(C, 20)
+        C = max(C, 1)
         visual = [
             box(pos = vec(0, 0, 0), length = 6, height = sqrt(C), width = sqrt(C), opacity = 0),
             box(pos = vec(2, 0, 0), axis = vec(1, 0, 0), length = 2, height = sqrt(C), width = sqrt(C), color = color.red),
             box(pos = vec(-2, 0, 0), axis = vec(-1, 0, 0), length = 2, height = sqrt(C), width = sqrt(C), color = color.blue)]
     if e.type == 'inductor':
-        N = 15 - exp(-sqrt(e.val) / 50 + log(15)) + 5
+        L = e.val
+        L *= 10e5
+        N = 15 - exp(-sqrt(L) / 50 + log(15)) + 5
         a = (N % 1) * 2 * pi
         visual = [
             box(pos = vec(0, 0, 0), length = 10, height = 8.8, width = 8.8, opacity = 0),
@@ -609,6 +668,8 @@ def reposition(e_visuals, translation):
                     item.modify(n, pos = item.point(n)['pos'] + translation)
             else:
                 item.pos +=  translation
+                
+                
 # Recursively creates the central circuit     
 def create_sub_circuit(circ):
     global blanks_visual
