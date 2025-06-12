@@ -20,7 +20,6 @@ circuit = None
 circuit_visual = None
 change_presets = []
 current_preset = None
-immutable = True
 frame_rate = 500
 start = False
 attatching = False
@@ -67,22 +66,8 @@ scene.bind('keydown', key_pressed)
 def key_pressed(evt):
     global attatching
     global breaker
-    global selected_circels = []
-    global selected_objects = []
-    global selected_labels = []
     keyname = evt.key
-    if keyname == 'x':
-        for object in selected_objects:
-            for shape in object[1:]:
-                shape.emissive = False
-                shape.opacity = 1
-        selected_objects = []
-        for l in selected_labels:
-            l.visible = False
-        selected_labels = []
-        selected_circels = []
-        attatching = False
-    if keyname == 'z':
+    if keyname == 'a':
         breaker = True and attatching
         
         
@@ -112,11 +97,11 @@ change_presets.append(button(text="Hotdog and Inductor in Parallel", pos=scene.t
 scene.caption = 'User Options: \n'
 scene.append_to_caption('Start Simulation: ')
 button(bind = start_battery, text= 'Turn on Battery')
+button(bind = stop_battery, text= 'Turn off Battery')
 scene.append_to_caption('\nMake Your Own Hot Dog: ')
 button(bind = dog_visual, text= 'Create!')
-button(bind = save_dog, text= 'Save!')
 scene.append_to_caption('\n')
-button(bind = attatch_object, text= 'Attatch to Circuit!')
+attatch_check = checkbox(bind = attatch_object, text= 'Attatch to Circuit!')
 scene.append_to_caption('\n Adjust Your Hotdogs \n')
 rs = slider(bind = adjust_dog, max = 2, min = 0.25, step = 0.1, value = 1, id = 'r')
 scene.append_to_caption('Radius: ')
@@ -277,8 +262,11 @@ def test(mode):
     # All the elements in series
     if mode == 0:
         circ.add_element(CIRCEL('battery', 10))
+        circ.add_element(CIRCEL('battery', 10))
+        circ.add_element(CIRCEL('inductor', 10))
         circ.add_element(CIRCEL('inductor', 10))
         circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+        circ.add_element(CIRCEL('capacitor', 10))
         circ.add_element(CIRCEL('capacitor', 10))
         circ.add_element(CIRCEL('resistor', 5))
         circ.add_element(CIRCEL('battery', 5))
@@ -332,105 +320,99 @@ create_circuit(circuit)
 
 ##################
 # CIRCUIT VISUALS
-
-
-# Returns the box of the first element in a nested list
-def get_first_box(e_visuals):
-    first = e_visuals[0]
-    if not isinstance(first, box):
-        first = get_first_box(first)
-    return first
-
-
-# Returns the box of the last element in a nested list
-def get_last_box(e_visuals):
-    last = e_visuals[-1]
-    if not isinstance(last[0], box):
-        last = get_last_box(last[-1])
-    else:
-        return last[0]
-    return last
-    
-def get_single_element(circel_list):
-    if isinstance(circel_list[0], CIRCEL):
-        return circel_list[0]
-    else:
-        return get_single_element(circel_list[0])
-    
-def item_count(circel_list):
-    items = 0
-    for item in circel_list:
-        if isinstance(item, (SERL, PARL)):
-            items += item_count(item.element_list)
-        else:
-            items += 1
-    return items
-
-
-# Recursively translates all shapes in a nested list
-def reposition(e_visuals, translation):
-    for item in e_visuals:
-        if not isinstance(item, (curve, box, cone, sphere, helix, cylinder)):
-            reposition(item, translation)
-        else:
-            if isinstance(item, curve):
-                for n in range(item.npoints):
-                    item.modify(n, pos = item.point(n)['pos'] + translation)
-            else:
-                item.pos +=  translation
       
 
 # Start simulation
 def start_battery():
     global start
     start = True
+    
+    
+def change_battery(e_visuals, new_color):
+    if len(e_visuals) == 2 and isinstance(e_visuals[1], box):
+        e_visuals[1].color = new_color
+    for item in e_visuals:
+        if isinstance(item, list):
+            change_battery(item, new_color)
+            
+
+# Start simulation
+def stop_battery():
+    global start
+    global circuit_visual
+    start = False
+    change_battery(circuit_visual, color.white)
 
 
 # Creates a hotdog
 def dog_visual():
-    global immutable
     global attatching
-    if immutable and not (attatching or start):
+    if not attatching:
         externals.append(CIRCEL('hotdog', (0.01, 0.1)))
         externals_visual.append(element_visual(externals[-1], create_mode = True))
         if circuit != None:
             reposition(externals_visual[-1] , vec(0, 0, circuit_visual[0].width / 2 + 10))
-    immutable = False
     
     
 # Adjust the radius and length of a hotdog
-def adjust_dog(evt, select_circel = None, select_dog = None):
+def adjust_dog(evt):
     global attatching
     global externals
     global externals_visual
     global selected_circels
+    global selected_objects
     global selected_labels
-    if not (attatching or start):
-        if select_circel == None or select_dog == None:
-            for i in range(len(externals)):
-                if externals[i].type == 'hotdog':
-                    last_dog_index = i
-            select_circel = externals[last_dog_index]
-            select_dog = externals_visual[last_dog_index]
-        if evt.id is 'r' and not immutable:
-            select_circel.val = (evt.value / 100, select_circel.val[1])
-            for shape in select_dog:
-                shape.radius = evt.value
-            select_dog[0].height = 2 * evt.value
-            select_dog[0].width = 2 * evt.value
-            rt.text = '{:1.2f}'.format(evt.value)
-        if evt.id is 'l' and not immutable:
-            select_circel.val = (select_circel.val[0], evt.value / 100)
-            select_dog[0].length = evt.value
-            select_dog[1].length = evt.value
-            select_dog[1].pos = select_dog[0].pos - vec(evt.value / 2, 0, 0)
-            select_dog[2].pos = select_dog[0].pos - vec(evt.value / 2, 0, 0)
-            select_dog[3].pos = select_dog[0].pos + vec(evt.value / 2, 0, 0)
-            lt.text = '{:1.2f}'.format(evt.value)
+    if not attatching:
+        for i in range(len(externals)):
+            if externals[i].type == 'hotdog':
+                last_dog_index = i
+                select_circel = externals[i]
+                select_dog = externals_visual[i]
         for i in range(len(selected_circels)):
-            if select_circel == selected_circels[i]:
-                selected_labels[i].visible = False
-                selected_labels[i] = label(pos = select_dog[0].pos, xoffset = max(select_dog[0].length, select_dog[0].width) / 2, yoffset = select_dog[0].height / 2, text = element_label(select_circel))
+            if selected_circels[i].type == 'hotdog':
+                last_dog_index = i
+                select_circel = selected_circels[i]
+                select_dog = selected_objects[i]
+        indices = [[last_dog_index, find_index(select_dog, circuit_visual, without_wires = False)]]
+        if indices[0][1] == 0 or (indices[0][1] != 0 and not start):
+            if evt.id is 'r':
+                select_circel.val = (evt.value / 100, select_circel.val[1])
+                for shape in select_dog:
+                    shape.radius = evt.value
+                select_dog[0].height = 2 * evt.value
+                select_dog[0].width = 2 * evt.value
+                rt.text = '{:1.2f}'.format(evt.value)
+            if evt.id is 'l':
+                select_circel.val = (select_circel.val[0], evt.value / 100)
+                select_dog[0].length = evt.value
+                select_dog[1].length = evt.value
+                select_dog[1].pos = select_dog[0].pos - vec(evt.value / 2, 0, 0)
+                select_dog[2].pos = select_dog[0].pos - vec(evt.value / 2, 0, 0)
+                select_dog[3].pos = select_dog[0].pos + vec(evt.value / 2, 0, 0)
+                lt.text = '{:1.2f}'.format(evt.value)
+            for i in range(len(selected_circels)):
+                if select_circel == selected_circels[i]:
+                    selected_labels[i].visible = False
+                    selected_labels[i] = label(pos = select_dog[0].pos, xoffset = max(select_dog[0].length, select_dog[0].width) / 2, yoffset = select_dog[0].height / 2, text = element_label(select_circel))
+            if indices[0][1] != 0:
+                selected_labels[last_dog_index].visible = False
+                for i in range(len(selected_objects)):
+                    if select_dog != selected_objects[i]:
+                        index = find_index(selected_objects[i], circuit_visual, without_wires = False)
+                        comb_index = [i, index]
+                        if index != 0:
+                            selected_labels[i].visible = False
+                            indices.append(comb_index)
+                remove_circuit(circuit_visual)
+                create_circuit(circuit)
+                for index in indices:
+                    new_element = circuit_visual
+                    for i in index[1]:
+                        new_element = new_element[i]
+                    for shape in new_element:
+                        shape.emissive = True
+                    selected_objects[index[0]] = new_element
+                    selected_labels[index[0]] = label(pos = new_element[0].pos, xoffset = max(new_element[0].length, new_element[0].width) / 2, yoffset = new_element[0].height / 2, text = element_label(selected_circels[index[0]]))
         
         
 # Adjust the values for an element using winput
@@ -441,12 +423,13 @@ def adjust_circel(evt):
     global selected_objects
     global selected_labels
     if not (attatching or start):
-        circel = selected_circels[-1]
-        element = selected_objects[-1]
+        for i in range(len(selected_circels)):
+            if selected_circels[i].type != 'hotdog':
+                last_index = i
+                circel = selected_circels[i]
+                element = selected_objects[i]
         indices = [find_index(element, externals_visual)]
         if indices[0] != 0:
-    #        if circel.type == 'hotdog':
-    #            adjust_dog
             circel.val = evt.number
             if circel.type == 'battery':
                 for shape in element:
@@ -462,11 +445,11 @@ def adjust_circel(evt):
                 a = (N % 1) * 2 * pi
                 element[1].coils = N
                 element[3].pos = element[2].pos + vec(10, 0, 0)  + 4 * vec(0, sin(a), cos(a) - 1)
-            selected_labels[-1].visible = False
-            selected_labels[-1] = label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel))
-        indices = [[-1, find_index(element, circuit_visual, without_wires = False)]]
+            selected_labels[last_index].visible = False
+            selected_labels[last_index] = label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel))
+        indices = [[last_index, find_index(element, circuit_visual, without_wires = False)]]
         if indices[0][1] != 0:
-            selected_labels[-1].visible = False
+            selected_labels[last_index].visible = False
             circel.val = evt.number
             for i in range(len(selected_objects)):
                 if element != selected_objects[i]:
@@ -487,17 +470,26 @@ def adjust_circel(evt):
                 selected_labels[index[0]] = label(pos = new_element[0].pos, xoffset = max(new_element[0].length, new_element[0].width) / 2, yoffset = new_element[0].height / 2, text = element_label(selected_circels[index[0]]))
     
     
-# Saves hotdog in dogs    
-def save_dog():
-    global immutable
-    immutable = True
-    
-    
 # Starts element attatchment method
-def attatch_object():
+def attatch_object(evt):
     global attatching
-    global step
-    attatching = True     
+    global stepper
+    global selected_circels
+    global selected_objects
+    global selected_labels
+    if attatching and not evt.checked:
+        for object in selected_objects:
+            for shape in object[1:]:
+                shape.emissive = False
+                shape.opacity = 1
+        selected_objects = []
+        for l in selected_labels:
+            l.visible = False
+        selected_labels = []
+        selected_circels = []
+        attatching = False
+        attatch_check.checked = False
+    attatching = evt.checked
     stepper = 0
     
     
@@ -506,15 +498,17 @@ def element_visual(e, create_mode):
     if e.type == 'blank':
         L, H, W = e.val
         visual = [box(pos = vec(0, 0, 0), length = L, height = H, width = W, visible = False)]
+        visual.append(cone(pos = vec(-L/2, 0, 0), axis = vec(1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
+        visual.append(cone(pos = vec(L/2, 0, 0), axis = vec(-1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
     if e.type == 'hotdog':
         R, L = e.val
         R *=  100
         L *=  100
         visual = [
             box(pos = vec(0, 0, 0), length = L, height = max(1.5, 2 * R), width = max(1.5, 2 * R), opacity = 0), 
-            cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_texture.png"),
-            sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_cap.png"),
-            sphere(pos =  vec(L/2, 0, 0), radius = R, color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_cap.png")]
+            cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_raw_texture.png"),
+            sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_raw_cap.png"),
+            sphere(pos =  vec(L/2, 0, 0), radius = R, color = color.red, texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_raw_cap.png")]
         if not create_mode:
             visual[0].length += 6
             visual.append(cone(pos = vec(-L/2 - 3, 0, 0), axis = vec(1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
@@ -571,6 +565,50 @@ def element_label(e):
         return 'Inductance: ' + L
         
         
+# Returns the box of the first element in a nested list
+def get_first_box(e_visuals):
+    first = e_visuals[0]
+    if not isinstance(first, box):
+        first = get_first_box(first)
+    return first
+
+
+# Returns the box of the last element in a nested list
+def get_last_box(e_visuals):
+    last = e_visuals[-1]
+    if not isinstance(last[0], box):
+        last = get_last_box(last[-1])
+    else:
+        return last[0]
+    return last
+    
+def get_single_element(circel_list):
+    if isinstance(circel_list[0], CIRCEL):
+        return circel_list[0]
+    else:
+        return get_single_element(circel_list[0])
+    
+def item_count(circel_list):
+    items = 0
+    for item in circel_list:
+        if isinstance(item, (SERL, PARL)):
+            items += item_count(item.element_list)
+        else:
+            items += 1
+    return items
+
+
+# Recursively translates all shapes in a nested list
+def reposition(e_visuals, translation):
+    for item in e_visuals:
+        if not isinstance(item, (curve, box, cone, sphere, helix, cylinder)):
+            reposition(item, translation)
+        else:
+            if isinstance(item, curve):
+                for n in range(item.npoints):
+                    item.modify(n, pos = item.point(n)['pos'] + translation)
+            else:
+                item.pos +=  translation
 # Recursively creates the central circuit     
 def create_sub_circuit(circ):
     global blanks_visual
@@ -733,6 +771,7 @@ def find_dogs(circ):
             dogs.extend(find_dogs(item))
     return dogs
     
+    
 # Finds all the hotdogs in a circuit    
 def find_dogs_visual(e_visual):
     dogs_visual = []
@@ -742,7 +781,7 @@ def find_dogs_visual(e_visual):
         elif isinstance(element, list):
             dogs_visual.extend(find_dogs_visual(element))
     return dogs_visual
-
+    
 
 # Finds the nearest upper level that contains a sub circuit
 def find_contains(circel, circ):
@@ -755,7 +794,17 @@ def find_contains(circel, circ):
                 return result
     return 0
  
-
+ 
+# Returns count of an element type in the circuit
+def circel_count(circel_type, circ):
+    count = 0
+    for item in circ.element_list:
+        if item.type == circel_type:
+            count += 1
+        if isinstance(item, (SERL, PARL)):
+            count += circel_count(circel_type, item)
+    return count
+    
 # Returns a copy of an element
 def clone_element(element):
     element_clone = []
@@ -827,6 +876,7 @@ while (True):
     rate(frame_rate)
     shape = scene.mouse.pick
     if start:
+        change_battery(circuit_visual, vec(255, 204, 102) / 255)
         dogs = find_dogs(circuit)
         dogs_visual = find_dogs_visual(circuit_visual)
         stepper += 1
@@ -863,6 +913,7 @@ while (True):
         if len(externals) == 0:
             alert('No elements to attatch with')
             attatching = False
+            attatch_check.checked = False
             continue
         if stepper == 0:
             for object in selected_objects:
@@ -880,11 +931,26 @@ while (True):
             if select:
                 element = find_visual(shape, externals_visual)
                 if element != 0:
+                    index = find_index(element, externals_visual)
+                    circel = externals[index[0]]
+                    if circel.type == 'battery':
+                        if circel_count('battery', circuit) >= 2:
+                            alert('Cannot add another battery. Limit of 2.')
+                            select = False
+                            continue
+                    if circel.type == 'capacitor':
+                         if circel_count('capacitor', circuit) >= 1:
+                            alert('Cannot add another capacitor. Limit of 1.')
+                            select = False
+                            continue
+                    if circel.type == 'inductor':
+                        if circel_count('battery', circuit) >= 2:
+                            alert('Cannot add another inductor. Limit of 1.')
+                            select = False
+                            continue
                     for shape in element[1:]:
                         shape.emissive = True
                         shape.opacity = 0.3
-                    index = find_index(element, externals_visual)
-                    circel = externals[index[0]]
                     selected_objects.append(element)
                     selected_circels.append(circel)
                     selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
@@ -977,6 +1043,7 @@ while (True):
             selected_circels = []
             attatching = False
             stepper = 0
+            attatch_check.checked = False
         continue
         
     # Dragging elements and removing them from the circuit
@@ -989,26 +1056,33 @@ while (True):
             if element != 0:
                 index = find_index(element, externals_visual)
                 circel = externals[index[0]]
-#                if not start or circel.type == 'hotdog':
-#                    if circel.type == 'hotdog':
-#                        for blank_visual in blanks_visual:
-#                            if mag(blank_visual[0].pos - position) < 1.5:
-#                                blank_index = find_index(blank_visual, circuit_visual)
-#                                blank = circuit
-#                                for i in blank_index:
-#                                    blank = blank.element_list[i - 1]
-#                                externals.remove(circel)
-#                                for shape in element:.
-#                                    shape.visible = False
-#                                externals_visual.remove(element)
-#                                blanks.remove(blank)
-#                                replace_circel(circel, blank, circuit)
-#                                blanks_visual.remove(blank_visual)
-#                                remove_circuit(circuit_visual)
-#                                create_circuit(circuit)
-                object = element
-                dragged_object = object
-                reposition(dragged_object, position - dragged_object[0].pos)
+                if start or circel.type == 'hotdog':
+                    dragged_object = element
+                    reposition(dragged_object, position - dragged_object[0].pos)
+                    for blank_visual in blanks_visual:
+                        if mag(blank_visual[0].pos - position) < 5:
+                            blank_index = find_index(blank_visual, circuit_visual)
+                            blank_visual_index = find_index(blank_visual, circuit_visual, without_wires = False)
+                            blank = circuit
+                            for i in blank_index:
+                                blank = blank.element_list[i - 1]
+                            externals.remove(circel)
+                            for shape in element:
+                                shape.visible = False
+                            externals_visual.remove(element)
+                            replace_circel(circel, blank, circuit)
+                            blanks_visual.remove(blank_visual)
+                            remove_circuit(circuit_visual)
+                            create_circuit(circuit)
+                            object = circuit_visual
+                            for i in blank_visual_index:
+                                object = object[i]
+                            for i in range(len(selected_objects)):
+                                if selected_objects[i] == element:
+                                    selected_circels.remove(selected_circels[i])
+                                    selected_objects.remove(element)
+                                    selected_labels[i].visible = False
+                                    selected_labels.remove(selected_labels[i])
             element = find_visual(shape, circuit_visual)
             if element != 0:
                 index = find_index(element, circuit_visual)
