@@ -5,9 +5,15 @@ Web VPython 3.2
 # CONSTANTS
 
 SCALE = 20
-HOTDOG_RESISTIVITY = 346 * 100 #Ohm/cm
+HOTDOG_RESISTIVITY = 10 #Ohm/m
+HOTDOG_DENSITY = 10e3 #kg/m^3
+HOTDOG_SPECIFIC_HEAT = 2500 #J/kg*K
 count = 0
 burnt, charred, perfect, undercooked, raw = 100, 75, 50, 25, 0
+max_battery, max_capacitor, max_inductor = 2, 1, 1
+frame_rate = 500
+time = 0
+speeder = 10
 
 ##################
 # GLOBAL VARS
@@ -19,7 +25,6 @@ externals_visual = []
 change_presets = []
 circuit = None
 circuit_visual = None
-frame_rate = 500
 start = False
 attatching = False
 stepper = 0
@@ -32,6 +37,10 @@ selected_objects = []
 selected_labels = []
 selected_highest_level = None
 selected_secondary_level = []
+data_graphs = []
+data_curves = []
+
+
 
 ##################
 # CAMERA/SCENE
@@ -113,15 +122,6 @@ scene.append_to_caption(' cm\n')
 ev = winput(bind = adjust_circel, prompt = 'Adjust Circuit Element Values:', type = 'numeric')
 
 
-######
-# GRAPHS
-
-temp = graph(title='Hotdog 1', xtitle='Time(s)', ytitle='Energy Dissipated(J)', xmin=0, ymin=0, xmax = 120, ymax = 500)
-a = gcurve(graph=temp)
-for x in range(0, 120):
-    a.plot(x, 150 - 50 ^ x)
-
-
 ##################
 # CLASSES
 
@@ -139,7 +139,9 @@ class CIRCEL:
     def __init__(self, type, val):
         self.type = type
         self.val = val
-        self.ENERGY = 0
+        self.current = 0
+        if type = 'hotdog':
+            self.temperature = 293 #Room Temperature
 
 
 
@@ -379,7 +381,14 @@ def presets(evt):
 # Start simulation
 def start_battery():
     global start
-    start = True
+    global circuit
+    global circuit_visuals
+    try:
+        if circel_count('battery', circuit) > 0:
+            change_battery(circuit_visual, vec(255, 255, 179) / 255)
+            start = True
+    except TypeError:
+        pass
     
     
 def change_battery(e_visuals, new_color):
@@ -607,21 +616,23 @@ def element_visual(e, create_mode):
     
 # Presets of element visuals based on the type
 def element_label(e):
+    c = e.current 
     if e.type == 'hotdog':
         R, L = e.val
-        return 'Radius: ' + R + '\nLength: ' + L
+        T = e.temperature
+        return 'Radius: ' + R + ' m\nLength: ' + L + ' m\nCurrent: ' + c + ' A\nTemperature: ' + T + ' K' 
     if e.type == 'battery':
         V = e.val
-        return 'Voltage: ' + V
+        return 'Voltage: ' + V + ' V\nCurrent: ' + c + ' A'
     if e.type == 'resistor':
         R = e.val
-        return 'Resistance: ' + R
+        return 'Resistance: ' + R + ' Ω\nCurrent: ' + c + ' A'
     if e.type == 'capacitor':
         C = e.val
-        return 'Capacitance: ' + C
+        return 'Capacitance: ' + C + ' F\nCurrent: ' + c + ' A'
     if e.type == 'inductor':
         L = e.val
-        return 'Inductance: ' + L
+        return 'Inductance: ' + L + ' H\nCurrent: ' + c + ' A'
         
         
 # Returns the box of the first element in a nested list
@@ -641,12 +652,15 @@ def get_last_box(e_visuals):
         return last[0]
     return last
     
+
+# Checks if the circuit contains only one element
 def get_single_element(circel_list):
     if isinstance(circel_list[0], CIRCEL):
         return circel_list[0]
     else:
         return get_single_element(circel_list[0])
-    
+     
+     
 def item_count(circel_list):
     items = 0
     for item in circel_list:
@@ -825,22 +839,24 @@ def find_index(element, e_visuals, without_wires = True):
 # Finds all the hotdogs in a circuit    
 def find_dogs(circ):
     dogs = []
-    for item in circ.element_list:
-        if item.type == 'hotdog':
-            dogs.append(item)
-        if isinstance(item, (SERL, PARL)):
-            dogs.extend(find_dogs(item))
+    if circ != None:
+        for item in circ.element_list:
+            if item.type == 'hotdog':
+                dogs.append(item)
+            if isinstance(item, (SERL, PARL)):
+                dogs.extend(find_dogs(item))
     return dogs
     
     
 # Finds all the hotdogs in a circuit    
 def find_dogs_visual(e_visual):
     dogs_visual = []
-    for element in e_visual:
-        if isinstance(element[2], sphere):
-            dogs_visual.append(element)
-        elif isinstance(element, list):
-            dogs_visual.extend(find_dogs_visual(element))
+    if e_visual != None:
+        for element in e_visual:
+            if isinstance(element[2], sphere):
+                dogs_visual.append(element)
+            elif isinstance(element, list):
+                dogs_visual.extend(find_dogs_visual(element))
     return dogs_visual
     
 
@@ -935,8 +951,10 @@ def check_full(circel_list, circ):
         
 while (True):
     rate(frame_rate)
+    dt = 1 / frame_rate
     shape = scene.mouse.pick
     if start:
+        time += 1
         change_battery(circuit_visual, vec(255, 204, 102) / 255)
         dogs = find_dogs(circuit)
         dogs_visual = find_dogs_visual(circuit_visual)
@@ -950,24 +968,37 @@ while (True):
         #
         #
         #
-        for i in range(len(dogs)):
-            dogs[i].ENERGY += 0.02
-            if dogs[i].ENERGY > burnt:
-                for shape in dogs_visual[i][1:4]:
-                    shape.texture = None
-                    shape.color = color.black
-            elif dogs[i].ENERGY > charred:
-                dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_texture.png"
-                dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
-                dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
-            elif dogs[i].ENERGY > perfect:
-                dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_texture.png"
-                dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
-                dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
-            elif dogs[i].ENERGY > undercooked:
-                dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
-                dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
-                dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
+        if speeder * time % frame_rate == 0:
+            for i in range(len(dogs)):
+                dogs[i].current = 2
+                dE = dogs[i].current ** 2 * HOTDOG_RESISTIVITY * dogs[i].val[1] / (dogs[i].val[1] ** 2 * pi)
+                dK = HOTDOG_SPECIFIC_HEAT / (dogs[i].val[1] * (dogs[i].val[1] ** 2 * pi) * HOTDOG_DENSITY * dE)
+                dogs[i].temperature += dK
+                if dogs[i].temperature > 373:
+                    for shape in dogs_visual[i][1:4]:
+                        shape.texture = None
+                        shape.color = color.black
+                elif dogs[i].temperature > 353:
+                    dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_texture.png"
+                    dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
+                    dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
+                elif dogs[i].temperature > 333:
+                    dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_texture.png"
+                    dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
+                    dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
+                elif dogs[i].temperature > 313:
+                    dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
+                    dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
+                    dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
+            for i in range(len(selected_circels)):
+                selected_labels[i].visible = False
+                selected_labels[i] = label(pos = selected_objects[i][0].pos, xoffset = max(selected_objects[i][0].length, selected_objects[i][0].width) / 2, yoffset = selected_objects[i][0].height / 2, text = element_label(selected_circels[i]))
+            if len(selected_circels) > 0:
+                if len(data_curves) > 0:
+                    graphed_circel = selected_circels[-1]
+                    data_curves[0].plot(time / frame_rate, graphed_circel.current)
+                    if graphed_circel.type == 'hotdog':
+                        data_curves[1].plot(time / frame_rate, graphed_circel.temperature)
         
     # Attatching an element to the circuit
     if attatching and not start:
@@ -994,18 +1025,21 @@ while (True):
                 if element != 0:
                     index = find_index(element, externals_visual)
                     circel = externals[index[0]]
+                    if circel.type == 'blank':
+                        select = False
+                        continue
                     if circel.type == 'battery':
-                        if circel_count('battery', circuit) >= 2:
+                        if circel_count('battery', circuit) >= max_battery:
                             alert('Cannot add another battery. Limit of 2.')
                             select = False
                             continue
                     if circel.type == 'capacitor':
-                         if circel_count('capacitor', circuit) >= 1:
+                         if circel_count('capacitor', circuit) >= max_capacitor:
                             alert('Cannot add another capacitor. Limit of 1.')
                             select = False
                             continue
                     if circel.type == 'inductor':
-                        if circel_count('battery', circuit) >= 2:
+                        if circel_count('battery', circuit) >= max_inductor:
                             alert('Cannot add another inductor. Limit of 1.')
                             select = False
                             continue
@@ -1023,7 +1057,7 @@ while (True):
         if stepper == 3:
             if select:
                 element = find_visual(shape, circuit_visual)
-                if element != 0:
+                if element != 0 :
                     for shape in element[1:]:
                         shape.emissive = True
                         shape.opacity = 0.3
@@ -1031,20 +1065,21 @@ while (True):
                     circel = circuit
                     for i in index:
                         circel = circel.element_list[i - 1]
-                    if circel not in selected_circels:
-                        selected_objects.append(element)
-                        selected_circels.append(circel)
-                        selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
-                    else:
-                        for i in range(len(selected_circels)):
-                            if selected_circels[i] == circel:
-                                selected_circels.remove(selected_circels[i])
-                                selected_labels[i].visible = False
-                                selected_labels.remove(selected_labels[i])
-                                for shape in selected_objects[i][1:]:
-                                    shape.emissive = False
-                                    shape.opacity = 1
-                                selected_objects.remove(selected_objects[i])
+                    if circel.type != 'blank':
+                        if circel not in selected_circels:
+                            selected_objects.append(element)
+                            selected_circels.append(circel)
+                            selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
+                        else:
+                            for i in range(len(selected_circels)):
+                                if selected_circels[i] == circel:
+                                    selected_circels.remove(selected_circels[i])
+                                    selected_labels[i].visible = False
+                                    selected_labels.remove(selected_labels[i])
+                                    for shape in selected_objects[i][1:]:
+                                        shape.emissive = False
+                                        shape.opacity = 1
+                                    selected_objects.remove(selected_objects[i])
                 select = False
             if breaker:
                 try:
@@ -1117,7 +1152,7 @@ while (True):
             if element != 0:
                 index = find_index(element, externals_visual)
                 circel = externals[index[0]]
-                if start or circel.type == 'hotdog':
+                if start or circel.type == 'hotdog' and circel.type != 'blank':
                     dragged_object = element
                     reposition(dragged_object, position - dragged_object[0].pos)
                     for blank_visual in blanks_visual:
@@ -1150,7 +1185,7 @@ while (True):
                 circel = circuit
                 for i in index:
                     circel = circel.element_list[i - 1]
-                if not start or circel.type == 'hotdog':
+                if not start or circel.type == 'hotdog' and circel.type != 'blank':
                     object = clone_element(element)
                     if not start:
                         remove_circel(circel, circuit)
@@ -1182,42 +1217,59 @@ while (True):
     if select:
         element = find_visual(shape, externals_visual)
         if element != 0:
-            for shape in element:
-                shape.emissive = True
             index = find_index(element, externals_visual)
             circel = externals[index[0]]
-            if circel not in selected_circels:
-                selected_objects.append(element)
-                selected_circels.append(circel)
-                selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
-            else:
+            if circel.type != 'blank':
                 for shape in element:
-                    shape.emissive = False
-                selected_objects.remove(element)
-                for i in range(len(selected_circels)):
-                    if selected_circels[i] == circel:
-                        selected_labels[i].visible = False
-                        selected_labels.remove(selected_labels[i])
-                selected_circels.remove(circel)
+                    shape.emissive = True
+                index = find_index(element, externals_visual)
+                if circel not in selected_circels:
+                    selected_objects.append(element)
+                    selected_circels.append(circel)
+                    selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
+                else:
+                    for shape in element:
+                        shape.emissive = False
+                    selected_objects.remove(element)
+                    for i in range(len(selected_circels)):
+                        if selected_circels[i] == circel:
+                            selected_labels[i].visible = False
+                            selected_labels.remove(selected_labels[i])
+                    selected_circels.remove(circel)
         element = find_visual(shape, circuit_visual)
         if element != 0:
-            for shape in element:
-                shape.emissive = True
             index = find_index(element, circuit_visual)
             circel = circuit
             for i in index:
                 circel = circel.element_list[i - 1]
-            if circel not in selected_circels:
-                selected_objects.append(element)
-                selected_circels.append(circel)
-                selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
-            else:
+            if circel.type != 'blank':
                 for shape in element:
-                    shape.emissive = False
-                selected_objects.remove(element)
-                for i in range(len(selected_circels)):
-                    if selected_circels[i] == circel:
-                        selected_labels[i].visible = False
-                        selected_labels.remove(selected_labels[i])
-                selected_circels.remove(circel)
+                    shape.emissive = True
+                if circel not in selected_circels:
+                    selected_objects.append(element)
+                    selected_circels.append(circel)
+                    selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
+                    if start:
+                        for data_graph in data_graphs:
+                            data_graph.delete()
+                        data_graphs = []
+                        data_curves = []
+                        current_graph = graph(title = 'Current v.s. Time', xtitle = 'Time(s)', ytitle = 'Current(A)', align = 'right')
+                        current_curve = gcurve(graph = current_graph)
+                        data_graphs.append(current_graph)
+                        data_curves.append(current_curve)
+                        if circel.type == 'hotdog':
+                            temperature_graph = graph(title = 'Temperature v.s. Time', xtitle = 'Time(s)', ytitle = 'Temperature(K)', align = 'right')
+                            temperature_curve = gcurve(label = 'Temperature v.s. Time', graph = temperature_graph)
+                            data_graphs.append(temperature_graph)
+                            data_curves.append(temperature_curve)
+                else:
+                    for shape in element:
+                        shape.emissive = False
+                    selected_objects.remove(element)
+                    for i in range(len(selected_circels)):
+                        if selected_circels[i] == circel:
+                            selected_labels[i].visible = False
+                            selected_labels.remove(selected_labels[i])
+                    selected_circels.remove(circel)
         select = False
