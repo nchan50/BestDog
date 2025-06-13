@@ -1,4 +1,5 @@
 Web VPython 3.2
+
 ## Circuit simulation
 
 ##################
@@ -186,8 +187,6 @@ class PARL:
 
 def RREF(M, a):
     back_count = 0
-    print(len(M))
-    print(len(M[0]))
     for i in range(len(M)):
         for j in range(len(M)):
             if all(x == 0 for x in M[j]) and j < len(M) - back_count:
@@ -209,11 +208,13 @@ def RREF(M, a):
                 if M[k][j] != 0 and j < leftmost_j:
                     leftmost_j = j
                     leftmost_i = k
-        M[i], M[leftmost_i] = M[leftmost_i], M[i]
-        a[i], a[leftmost_i] = a[leftmost_i], a[i]
+        M_temp = M[i][:]
+        M[i] = M[leftmost_i]
+        M[leftmost_i] = M_temp
+        a_temp = a[i]
+        a[i] = a[leftmost_i]
+        a[leftmost_i] = a_temp
         factor = M[i][leftmost_j]
-        print(factor)
-        print(M)
         a[i] = a[i] / factor
         M[i] = [e / factor for e in M[i]]
         for k in range(i + 1, len(M) - back_count):
@@ -221,11 +222,8 @@ def RREF(M, a):
             a[k] -= a[i] * factor
             for j in range(len(M[0])):
                 M[k][j] -= M[i][j] * factor
-#    print('\\\\')
     a = a[:len(M) - back_count]
     M = M[:len(M) - back_count]
-#    print("M",M)
-#    print(a)
     for i in range(1, len(M) + 1):
         leftmost_j = len(M[0]) - 1
         for j in range(len(M[0])):
@@ -360,22 +358,9 @@ def one_dog(voltage):
 def dogs_ser(voltage,n):
     batt = CIRCEL("battery",voltage)
     circ = SERL([batt])
-    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    sub_circ = PARL([])
-    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    sub_ser = SERL([])
-    sub_par_2 = PARL([])
-    sub_par_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    sub_par_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    sub_ser.add_element(sub_par_2)
-    sub_ser.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    sub_circ.add_element(sub_ser)
-    circ.add_element(sub_circ)
-    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    for i in range(n):
+        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     return circ
-#    for i in range(n):
-#        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-#    return circ
 
 ######
 # Hotdogs in Parallel
@@ -446,6 +431,25 @@ def dog_ind_par(voltage, inductance):
     sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     sub_circ.add_element(CIRCEL('inductor', inductance))
     circ.add_element(sub_circ)
+    return circ
+    
+######
+#Complex
+def c_1():
+    batt = CIRCEL("battery",120)
+    circ = SERL([batt])
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ = PARL([])
+    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_ser = SERL([])
+    sub_par_2 = PARL([])
+    sub_par_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_par_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_ser.add_element(sub_par_2)
+    sub_ser.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ.add_element(sub_ser)
+    circ.add_element(sub_circ)
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     return circ
 
 
@@ -1094,13 +1098,8 @@ while (True):
             current_matrix.extend(kirchoff_matrix)
             augmented_vector = []
             augmented_vector.extend(junction_augmented_vector)
-#            print("j",junction_augmented_vector)
             augmented_vector.extend(kirchoff_augmented_vector)
-#            print("k",kirchoff_augmented_vector)
-#            print(current_matrix)
-#            print(augmented_vector)
             augmented_vector = RREF(current_matrix, augmented_vector)
-#            print("augmented_vector",augmented_vector)
             for i in range(len(element_vector)):
                 if element_vector[i].type == 'inductor':
                     element_vector[i].charge = (augmented_vector[i] - element_vector[i].current)
