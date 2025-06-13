@@ -5,11 +5,11 @@ Web VPython 3.2
 # CONSTANTS
 
 SCALE = 20
-HOTDOG_RESISTIVITY = 10 #Ohm/m
-HOTDOG_DENSITY = 10e3 #kg/m^3
-HOTDOG_SPECIFIC_HEAT = 2500 #J/kg*K
+HOTDOG_RESISTIVITY = 0.027 #Ohm/m
+HOTDOG_DENSITY = 1000 #kg/m^3
+HOTDOG_SPECIFIC_HEAT = 3350 #J/kg*K
 count = 0
-burnt, charred, perfect, undercooked, raw = 100, 75, 50, 25, 0
+burnt, charred, perfect, undercooked, uncooked = 100, 75, 50, 25, 0
 max_battery, max_capacitor, max_inductor = 2, 1, 1
 frame_rate = 500
 time = 0
@@ -27,6 +27,11 @@ blanks = []
 blanks_visual = []
 externals = []
 externals_visual = []
+element_vector = []
+junction_matrix = []
+junction_augmented_vector = []
+kirchoff_matrix = []
+kirchoff_augmented_vector = []
 start = False
 attatching = False
 stepper = 0
@@ -108,8 +113,6 @@ button(bind = start_battery, text= 'Turn on Battery')
 button(bind = stop_battery, text= 'Turn off Battery')
 scene.append_to_caption('\nMake Your Own Hot Dog: ')
 button(bind = dog_visual, text= 'Create!')
-scene.append_to_caption('\n')
-attatch_check = checkbox(bind = attatch_object, text= 'Attatch to Circuit!')
 scene.append_to_caption('\n Adjust Your Hotdogs \n')
 rs = slider(bind = adjust_dog, max = 2, min = 0.25, step = 0.1, value = 1, id = 'r')
 scene.append_to_caption('Radius: ')
@@ -120,6 +123,8 @@ scene.append_to_caption('Length: ')
 lt = wtext(text = '{:1.2f}'.format(ls.value))
 scene.append_to_caption(' cm\n')     
 ev = winput(bind = adjust_circel, prompt = 'Adjust Circuit Element Values:', type = 'numeric')
+scene.append_to_caption('\n')
+attatch_check = checkbox(bind = attatch_object, text= 'Attatch to Circuit!')
 
 
 ##################
@@ -140,10 +145,13 @@ class CIRCEL:
         self.type = type
         self.val = val
         self.current = 0
-        if type = 'hotdog':
+        if type == 'hotdog':
             self.temperature = 293 #Room Temperature
-
-
+        if type == 'capacitor':
+            self.charge = 0
+        if type == 'inductor':
+            self.di = 0
+            
 
 ######
 # SERL = SERIES LIST
@@ -176,329 +184,154 @@ class PARL:
 ##################
 # COMPUTATIONAL FUNCTIONS
 
-#returns final list of unique elements
-def create_ref_row(current,depth,og,start,ref_row):
-    if (og != current or start == True):
-        
-        # if curcuit is not well defined
-        if current == None:
-            return ref_row
+def RREF(M, a):
+    back_count = 0
+    print(len(M))
+    print(len(M[0]))
+    for i in range(len(M)):
+        for j in range(len(M)):
+            if all(x == 0 for x in M[j]) and j < len(M) - back_count:
+                zero_M = M.pop(j)
+                zero_a = a.pop(j)
+                M.append(zero_M)
+                a.append(zero_a)
+                back_count += 1
+                j -= 1
+                print('ran')
+                
+        print("back_count",back_count)
+        if i >= len(M) - back_count:
+            break
+        leftmost_i = i
+        leftmost_j = len(M[0]) - 1
+        for k in range(i, len(M) - back_count):
+            for j in range(len(M[0])):
+                if M[k][j] != 0 and j < leftmost_j:
+                    leftmost_j = j
+                    leftmost_i = k
+        M[i], M[leftmost_i] = M[leftmost_i], M[i]
+        a[i], a[leftmost_i] = a[leftmost_i], a[i]
+        factor = M[i][leftmost_j]
+        print(factor)
+        print(M)
+        a[i] = a[i] / factor
+        M[i] = [e / factor for e in M[i]]
+        for k in range(i + 1, len(M) - back_count):
+            factor = M[k][leftmost_j] / M[i][leftmost_j]
+            a[k] -= a[i] * factor
+            for j in range(len(M[0])):
+                M[k][j] -= M[i][j] * factor
+#    print('\\\\')
+    a = a[:len(M) - back_count]
+    M = M[:len(M) - back_count]
+#    print("M",M)
+#    print(a)
+    for i in range(1, len(M) + 1):
+        leftmost_j = len(M[0]) - 1
+        for j in range(len(M[0])):
+            if M[-i][j] != 0 and j < leftmost_j:
+                leftmost_j = j
+        for k in range(len(M) - i):
+            factor = M[k][leftmost_j] / M[-i][leftmost_j]
+            a[k] -= a[-i] * factor
+            M[k][leftmost_j] -= factor
+    return a
             
-        # is in series
-        elif isinstance(current, SERL):
-            ref_row.append(current)
-            for i in range(len(current.element_list)):
-                ref_row = create_ref_row(current.element_list[i],depth-1,og,False,ref_row)
-            if current.next != None:
-                ref_row = create_ref_row(current.next,depth-1,og,False,ref_row)
-            return ref_row
-        
-        # is in parallel
-        elif isinstance(current, PARL):
-            ref_row.append(current)
-            for i in range(len(current.element_list)):
-                ref_row = create_ref_row(current.element_list[i],depth-1,og,False,ref_row)
-            if current.next != None:
-                ref_row = create_ref_row(current.next,depth-1,og,False,ref_row)
-            return ref_row
             
-        # is circuit element
-        else:
-            if current not in ref_row:
-                ref_row.append(current)
-            return ref_row
-    else:
-        return ref_row
-    return -1
-
-#def create_rows(current,og,depth,start,matrix,curr_row,ref_row):
-#    #in final call, return full matrix
-#    #print(depth)
-#    # if not completed loop yet
-#
-##    print("curr row",curr_row)
-#    if (og != current or start == True):
-#
-#        # if SERL
-#        if isinstance(current, SERL):
-#            for i in range(len(current.element_list)):
-#
-#                # if element is listed
-#                if isinstance(current.element_list[i], (SERL,PARL)):
-#                    matrix = create_rows(current.element_list[i],og,depth-1,False,matrix,curr_row,ref_row)
-#                else:
-#                    for j in range(len(ref_row)):
-#                        if ref_row[j] == current.element_list[i]:
-#                            curr_row[j] = current.element_list[i]
-#
-#
-#
-#
-#            # returns the final matrix
-#            # calls function to go through the next circ
-##            print("SERL CALL")
-#
-#            #considers the next node
-##            matrix = create_rows(current.next,og,depth-1,False,matrix,curr_row,ref_row)
-#
-#            # row that accounts for junction rule (in SERIES case, currents are the same)
-#            junction_row = create_len_arr(len(ref_row))
-#            # for each possible element in the circuit
-#            for j in range(len(ref_row)):
-#                # if element is the current list (SERL/PARL) (junction)
-#                if ref_row[j] == current:
-#                    #adds 1 to start equation
-#                    junction_row[j] = 1
-#                    #for each element in the list, create a row
-#                    for i in range(len(current.element_list)):
-#                        tmp_junct_row = copy_arr(junction_row)
-#                        for k in range(len(ref_row)):
-#                            # adds -1 to set sum of branches equal to input current of list
-#                            if ref_row[k] == current.element_list[i]:
-#                                tmp_junct_row[k] = -1
-#
-#                        #append junction row to matrix for each element, since they are the same
-#                        matrix.append(tmp_junct_row)
-#
-#
-#            # row that accounts for junction rule (from current to next)
-#            junction_row = create_len_arr(len(ref_row))
-#
-#            for j in range(len(ref_row)):
-#                # if element is the current list (SERL/PARL) (junction)
-#                if ref_row[j] == current:
-#                    #adds 1 to start equation
-#                    junction_row[j] += 1
-#
-#            for j in range(len(ref_row)):
-#                # if element is the list next pointer
-#                if ref_row[j] == current.next:
-#                    #adds 1 to start equation
-#                    junction_row[j] -= 1
-#            matrix.append(junction_row)
-#
-#
-#            return matrix
-#
-#        if isinstance(current, PARL):
-#            for i in range(len(current.element_list)):
-#                tmp_curr_row = copy_arr(curr_row)
-##                print("tmp_curr_row", tmp_curr_row)
-#                # add each element to row
-#                for j in range(len(ref_row)):
-#                    if ref_row[j] == current.element_list[i]:
-#                        tmp_curr_row[j] = current.element_list[i]
-#
-#                # for each branch copy this row and create more rows
-#                # updates matrix each time
-##                print("PARL CALL")
-#
-##                matrix = create_rows(current.next,og,depth-1,False,matrix,tmp_curr_row,ref_row)
-#
-#                if isinstance(current.element_list[i], (SERL,PARL)):
-#                    matrix,curr_row = create_rows(current.element_list[i],og,depth-1,False,matrix,curr_row,ref_row)
-#                else:
-#                    for j in range(len(ref_row)):
-#                        if ref_row[j] == current.element_list[i]:
-#                            curr_row[j] = current.element_list[i]
-#
-#            # row that accounts for junction rule (within element list)
-#            junction_row = create_len_arr(len(ref_row))
-#
-#            # for each possible element in the circuit
-#            for j in range(len(ref_row)):
-#                # if element is the current list (SERL/PARL) (junction)
-#                if ref_row[j] == current:
-#                    #adds 1 to start equation
-#                    junction_row[j] = 1
-#                    #for each element include in row
-#                    for i in range(len(current.element_list)):
-#                        for k in range(len(ref_row)):
-#                            # adds -1 to set sum of branches equal to input current of list
-#                            if ref_row[k] == current.element_list[i]:
-#                                junction_row[k] = -1
-#
-#            #append junction row to matrix
-#            matrix.append(junction_row)
-#
-#
-#            # row that accounts for junction rule (from current to next)
-#            junction_row = create_len_arr(len(ref_row))
-#
-#            for j in range(len(ref_row)):
-#                # if element is the current list (SERL/PARL) (junction)
-#                if ref_row[j] == current:
-#                    #adds 1 to start equation
-#                    junction_row[j] += 1
-#
-#            for j in range(len(ref_row)):
-#                # if element is the list next pointer
-#                if ref_row[j] == current.next:
-#                    #adds 1 to start equation
-#                    junction_row[j] -= 1
-#            matrix.append(junction_row)
-#
-#
-#            # calls function to go through the next circ
-#            return matrix
-#
-##        else:
-##            print("cannot handle non-SERL/PARL")
-#
-#    # has completed loop
-#    else:
-##        matrix
-#        #append curr branch row to matrix
-#        matrix.append(curr_row)
-#        return matrix
-
-def create_rows(current,curr_rows,ref_row):
-        # if SERL
-        if isinstance(current, SERL):
-            for i in range(len(current.element_list)):
-                # if element is a list
-                if isinstance(current.element_list[i], (SERL,PARL)):
-                    curr_rows = create_rows(current.element_list[i],curr_rows,ref_row)
-                else:
-                    for k in range(len(curr_rows)):
-                        for j in range(len(ref_row)):
-                            if ref_row[j] == current.element_list[i]:
-                                curr_rows[k][j] = current.element_list[i]
-
-        elif isinstance(current, PARL):
-            # for each current path I need to muliply it and add
-            tmp_rows = []
-            for arr in curr_rows:
-                for i in range(len(current.element_list)):
-                    tmp_arr = copy_arr(arr)
-                    if isinstance(current.element_list[i], (SERL,PARL)):
-                        tmp_rows.extend(create_rows(current.element_list[i],[tmp_arr],ref_row))
-                    else:
-                        # replace arr with the
-                        for j in range(len(ref_row)):
-                            if ref_row[j] == current.element_list[i]:
-                                tmp_arr[j] = current.element_list[i]
-                                tmp_rows.append(tmp_arr)
-#                                print(tmp_arr)
-#                                if arr in curr_rows:
-#                                    curr_rows.remove(arr)
-                    
-#                        tmp_curr_rows = create_len_arr(len(curr_rows[0]))
-#                        for j in range(len(curr_rows)):
-#                            tmp_curr_rows[j] = copy_arr(curr_rows[j])
-#                        for k in range(len(tmp_curr_rows)):
-#                            for j in range(len(ref_row)):
-#                                if ref_row[j] == current.element_list[i]:
-#                                    tmp_curr_rows[k][j] = current.element_list[i]
-#                                    curr_rows.append(tmp_curr_rows)
-                
-
-            return tmp_rows
-        return curr_rows
-
-
-
-def get_first_matrix(start_node,ref_row):
-    curr_row = []
-    for i in range(len(ref_row)):
-        curr_row.append(0)
-    return create_rows(start_node,start_node,10,True,[],curr_row,ref_row)
-
-def get_augment(matrix,ref_row):
-    augment_col = create_len_arr(len(matrix))
-    for i in range(len(ref_row)):
-    
-        # if there is an element that provides voltage
-        if ref_row[i].type == "battery":
-#            print("FOUND")
-            # for each row (loop) that has the voltage source in it
-            for r in range(len(matrix)):
+def create_element_vector(circ):
+    global element_vector
+    for item in circ.element_list:
+        element_vector.append(item)
+        if isinstance(item, (SERL, PARL)):
+            create_element_vector(item)
             
-                #if battery is in kirchoff loop
-                if isinstance(matrix[r][i],(CIRCEL)) :
-                    augment_col[r] = augment_col[r] + matrix[r][i].val
-    return augment_col
-
-#converts the first matrix into the matrix with resistances
-def convert_matrix(matrix):
-    # for each matrix entry
-    for i in range(len(matrix)):
-        for j in range(len(matrix[i])):
-            #replace each element with its corresponding resistance
-            if isinstance(matrix[i][j],CIRCEL):
-                
-                
-                #if element is a hotdog, calculate resistance and replace matrix entry
-                if matrix[i][j].type == "hotdog":
-                    matrix[i][j] = get_dog_res(matrix[i][j])
-                elif matrix[i][j].type == "resistor":
-                    matrix[i][j] = matrix[i][j].val
-                elif matrix[i][j].type == "battery":
-                    matrix[i][j] = 0
-                elif matrix[i][j].type == "capacitor":
-                    C = matrix[i][j].val
-                else:
-                    print(matrix[i][j].type)
-#                    print("NOT HANDLED")
-#                elif matrix[i][j].type == "resistor":
-    return matrix
-
-
-def get_final_matrix(start_node):
-    ref_row = create_ref_row(start_node,10,start_node,True,[])
-    print("ref row: ",ref_row)
-    matrix = get_first_matrix(start_node,ref_row)
-    print("first matrix",matrix)
-    aug_col = get_augment(matrix,ref_row)
-    print("aug row",aug_col)
-    
-    #convert to resistance entries
-    matrix = convert_matrix(matrix)
-    print("restistance matrix", matrix)
-    
-    #output of final rref
-    matrix,sol = rref1(matrix,aug_col)
-#    print("rrefed matrix", matrix)
-#    for i in range(len(ref_row)):
-#        for
-#    print(sol)
-    return matrix
-
             
+def create_junction_matrix(circ):
+    global element_vector, junction_matrix, junction_augmented_vector
+    if isinstance(circ, SERL):
+        for i in range(len(circ.element_list)):
+            v = []
+            for object in element_vector:
+                v.append(0)
+            if i == 0:
+                for j in range(len(element_vector)):
+                    if circ == element_vector[j]: 
+                        v[j] = 1
+                    if circ.element_list[0] == element_vector[j]:
+                        v[j] = -1
+            else:
+                for j in range(len(element_vector)):
+                    if circ.element_list[i - 1] == element_vector[j]:
+                        v[j] = 1
+                    if circ.element_list[i] == element_vector[j]:
+                        v[j] = -1
+            junction_matrix.append(v)
+            junction_augmented_vector.append(0)
+    if isinstance(circ, PARL):
+        v = []
+        for object in element_vector:
+            v.append(0)
+        for i in range(len(element_vector)):
+            if circ == element_vector[i]: 
+                v[i] = 1
+            for j in range(len(element_vector)):
+                if element_vector[i] in circ.element_list: 
+                    v[i] = -1
+        junction_matrix.append(v)
+        junction_augmented_vector.append(0)
+    for item in circ.element_list:
+        if isinstance(item, (SERL, PARL)):
+            create_junction_matrix(item)
+            
+            
+def create_kirchoff_loops(circ):
+    if isinstance(circ, SERL):
+        KCLs = [[]]
+        for item in circ.element_list:
+            for KCL in KCLs:
+                KCL.append(item)
+            if isinstance(item, (SERL, PARL)):
+                new_KCLs =  []
+                for KCL in KCLs:
+                    for sub_KCL in create_kirchoff_loops(item):
+                        branched_KCL = KCL[:]
+                        branched_KCL.extend(sub_KCL)
+                        new_KCLs.append(branched_KCL)
+                KCLs.extend(new_KCLs)
+    if isinstance(circ, PARL):
+        KCLs = []
+        for item in circ.element_list:
+            KCLs.append([item])
+            if isinstance(item, (SERL, PARL)):
+                for sub_KCL in create_kirchoff_loops(item):
+                    KCLs.append(sub_KCL)
+    return KCLs
 
 
-# goes searching for  'start' until you get back to that circot
-
-#def kirchoff_loop(start,):
-#    path = []
-#    if start.type == "SERL":
-#        
-#    size = len(start.element_list)
+def create_kirchoff_matrix(circ):
+    global HOTDOG_RESISTIVITY, element_vector, kirchoff_matrix, kirchoff_augmented_vector
+    KCLs = create_kirchoff_loops(circ)
+    for KCL in KCLs:
+        v = []
+        for _ in element_vector:
+            v.append(0)
+        value = 0
+        for element in KCL:
+            for i in range(len(element_vector)):
+                if element == element_vector[i]:
+                    if element.type == 'hotdog':
+                        v[i] = HOTDOG_RESISTIVITY * element.val[1] / (element.val[0] ** 2 * pi)
+                    if element.type == 'resistor':
+                        v[i] = element.val
+                    if element.type == 'battery':
+                        value += element.val
+                    if element.type == 'capacitor':
+                        value -= element.charge / element.val
+                    if element.type == 'capacitor':
+                        value -= element.val * -element.di / 1
+        kirchoff_matrix.append(v)
+        kirchoff_augmented_vector.append(value)
     
-    
-
-def rref(matrix,aug_col):
-    # for each column
-    max_row = len(matrix)
-    max_col = len(matrix[0])
-    for col in range(max_col):
-        for row in range(max_row):
-            if row != col and col < max_row:
-                s = matrix[row][col] / matrix[col][col]
-                
-                #modify aug_col
-                aug_col[row] = aug_col[row] - s * aug_col[col]
-                
-                # for each col negate
-                for j in range(len(matrix[0])):
-                    if j >= col:
-                        matrix[row][j] = matrix[row][j] - s * matrix[col][j]
-    for col in range(max_col):
-        if col < max_row:
-            aug_col[col] = aug_col[col] / matrix[col][col]
-            matrix[col][col] = 1
-    
-    return matrix,aug_col
 
 ##################
 # HELPER FUNCTIONS
@@ -512,24 +345,7 @@ def calc_resistance(resistivity,radius,length):
 def create_dog(radius, length): #radius and length in METERS
     hotdog = CIRCEL("hotdog",HOTDOG_RESISTIVITY*pi*(radius**2))
     return hotdog
-    
-def copy_arr(arr):
-    l = []
-    for e in arr:
-        l.append(e)
-    return l
-    
-def create_len_arr(length):
-    l = []
-    for i in range(length):
-        l.append(0)
-    return l
 
-def get_dog_res(hotdog):
-    if isinstance(hotdog,CIRCEL):
-        if hotdog.type == "hotdog":
-            return HOTDOG_RESISTIVITY * hotdog.val[1] / (hotdog.val[0] ** 2 * pi)
-    perror("NOT HOT DOG")
 
 ##################
 # CIRCUIT PRESETS
@@ -544,17 +360,32 @@ def one_dog(voltage):
 def dogs_ser(voltage,n):
     batt = CIRCEL("battery",voltage)
     circ = SERL([batt])
-    for i in range(n):
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ = PARL([])
+    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_ser = SERL([])
+    sub_par_2 = PARL([])
+    sub_par_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_par_2.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_ser.add_element(sub_par_2)
+    sub_ser.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ.add_element(sub_ser)
+    circ.add_element(sub_circ)
+    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     return circ
+#    for i in range(n):
+#        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+#    return circ
 
 ######
 # Hotdogs in Parallel
 def dogs_par(voltage,n):
     batt = CIRCEL("battery",voltage)
-    circ = PARL([batt])
+    circ = SERL([batt])
+    sub_circ = PARL([])
     for i in range(n):
-        circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+        sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    circ.add_element(sub_circ)
     return circ
 
 ######
@@ -570,9 +401,11 @@ def dog_res_ser(voltage,resistance):
 # Hotdog and Resistor in Parallel
 def dog_res_par(voltage,resistance):
     batt = CIRCEL("battery",voltage)
-    circ = PARL([batt])
-    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    circ.add_element(CIRCEL('resistor', resistance))
+    circ = SERL([batt])
+    sub_circ = PARL([])
+    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ.add_element(CIRCEL('resistor', resistance))
+    circ.add_element(sub_circ)
     return circ
 
 ######
@@ -588,9 +421,11 @@ def dog_cap_ser(voltage, capacitance):
 # Hotdog and Capacitor in Parallel
 def dog_cap_par(voltage,capacitance):
     batt = CIRCEL("battery",voltage)
-    circ = PARL([batt])
-    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    circ.add_element(CIRCEL('capacitor', capacitance))
+    circ = SERL([batt])
+    sub_circ = PARL([])
+    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ.add_element(CIRCEL('capacitor', capacitance))
+    circ.add_element(sub_circ)
     return circ
 
 ######
@@ -604,11 +439,13 @@ def dog_ind_ser(voltage,inductance):
 
 ######
 # Hotdog and Inductor in Parallel
-def dog_ind_par(voltage):
+def dog_ind_par(voltage, inductance):
     batt = CIRCEL("battery",voltage)
     circ = SERL([batt])
-    circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    circ.add_element(CIRCEL('inductor', inductance))
+    sub_circ = PARL([])
+    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ.add_element(CIRCEL('inductor', inductance))
+    circ.add_element(sub_circ)
     return circ
 
 
@@ -635,23 +472,23 @@ def presets(evt):
         except TypeError:
             pass
         if evt.text == 'One Hotdog':
-            circuit = one_dog(10, 1)
+            circuit = one_dog(120, 1)
         if evt.text == 'Hotdogs in Series':
-            circuit = dogs_ser(10, 2)
+            circuit = dogs_ser(120, 2)
         if evt.text == 'Hotdogs in Parallel':
-            circuit = dogs_par(10, 2)
+            circuit = dogs_par(120, 2)
         if evt.text == 'Hotdog and Resistor in Series':
-            circuit = dog_res_ser(10, 100)
+            circuit = dog_res_ser(120, 100)
         if evt.text == 'Hotdog and Resistor in Parallel':
-            circuit = dog_res_par(10, 100)
+            circuit = dog_res_par(120, 100)
         if evt.text == 'Hotdog and Capacitor in Series':
-            circuit = dog_cap_ser(10, 10e-6)
+            circuit = dog_cap_ser(120, 10e-6)
         if evt.text == 'Hotdog and Capacitor in Parallel':
-            circuit = dog_cap_par(10, 10e-6)
+            circuit = dog_cap_par(120, 10e-6)
         if evt.text == 'Hotdog and Inductor in Series':
-            circuit = dog_ind_ser(10, 10e-5)
+            circuit = dog_ind_ser(120, 10e-5)
         if evt.text == 'Hotdog and Inductor in Parallel':
-            circuit = dog_cap_ser(10, 10e-5)
+            circuit = dog_ind_par(120, 10e-5)
         create_circuit(circuit)
 
 ##################
@@ -660,13 +497,15 @@ def presets(evt):
 
 # Start simulation
 def start_battery():
-    global start, circuit, circuit_visuals
-    try:
-        if circel_count('battery', circuit) > 0:
-            change_battery(circuit_visual, vec(255, 255, 179) / 255)
-            start = True
-    except TypeError:
-        pass
+    global attatching, start, circuit, stepper, circuit_visuals
+    if not attatching:
+        try:
+            if circel_count('battery', circuit) > 0:
+                change_battery(circuit_visual, vec(255, 255, 179) / 255)
+                start = True
+                stepper = 0
+        except TypeError:
+            pass
     
     
 def change_battery(e_visuals, new_color):
@@ -679,9 +518,11 @@ def change_battery(e_visuals, new_color):
 
 # Start simulation
 def stop_battery():
-    global start, circuit_visual
-    start = False
-    change_battery(circuit_visual, color.white)
+    global attatching, start, circuit_visual
+    if not attatching:
+        start = False
+        stepper = 0
+        change_battery(circuit_visual, color.white)
 
 
 # Creates a hotdog
@@ -804,6 +645,7 @@ def adjust_circel(evt):
 # Starts element attatchment method
 def attatch_object(evt):
     global attatching, stepper, selected_circels, selected_objects, selected_labels
+    evt.checked = not start
     if attatching and not evt.checked:
         for object in selected_objects:
             for shape in object[1:]:
@@ -842,6 +684,8 @@ def element_visual(e, create_mode):
             visual.append(cone(pos = vec(L/2 + 3, 0, 0), axis = vec(-1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
     if e.type == 'battery':
         V = e.val
+        V = min(V, 20)
+        V = max(V, 2)
         visual = [
             box(pos = vec(0, 0, 0), length = V, height = V, width = V, opacity = 0),
             box(pos = vec(0, 0, 0), axis = vec(1, 0, 0), length = V, height = V, width = V)]
@@ -893,7 +737,8 @@ def element_label(e):
         return 'Resistance: ' + R + ' Ω\nCurrent: ' + c + ' A'
     if e.type == 'capacitor':
         C = e.val
-        return 'Capacitance: ' + C + ' F\nCurrent: ' + c + ' A'
+        Q = e.charge
+        return 'Capacitance: ' + C + ' F\nCurrent: ' + c + ' A\nCharge: ' + Q + ' C'
     if e.type == 'inductor':
         L = e.val
         return 'Inductance: ' + L + ' H\nCurrent: ' + c + ' A'
@@ -923,8 +768,9 @@ def get_single_element(circel_list):
         return circel_list[0]
     else:
         return get_single_element(circel_list[0])
-     
-     
+  
+  
+# Counts elements in circuit     
 def item_count(circel_list):
     items = 0
     for item in circel_list:
@@ -1072,32 +918,34 @@ def create_circuit(circ):
         
         
 # Finds the element with the shape in it
-def find_visual(shape, e_visuals):
-    if isinstance(shape, (box, cone, sphere, helix, cylinder)):
-        for element in e_visuals:
-            if shape in element:
-                return element
-            if isinstance(element, list):
-                found = find_visual(shape, element)
-                if found != 0:
-                    return found
+def find_visual(shape, e_visual):
+    if e_visual != None:
+        if isinstance(shape, (box, cone, sphere, helix, cylinder)):
+            for element in e_visual:
+                if shape in element:
+                    return element
+                if isinstance(element, list):
+                    found = find_visual(shape, element)
+                    if found != 0:
+                        return found
     return 0
     
         
 # Finds the index of the elements within the nested circuit structure
-def find_index(element, e_visuals, without_wires = True):
+def find_index(element, e_visual, without_wires = True):
     wire_offset = 0
-    for i in range(len(e_visuals)):
-        if isinstance(e_visuals[i][1], curve) and without_wires:
-            wire_offset += 1
-        current = [i - wire_offset]
-        if e_visuals[i] == element:
-            return current
-        if isinstance(e_visuals[i], list):
-            found = find_index(element, e_visuals[i], without_wires)
-            if found != 0:
-                current.extend(found)
+    if e_visual != None:
+        for i in range(len(e_visual)):
+            if isinstance(e_visual[i][1], curve) and without_wires:
+                wire_offset += 1
+            current = [i - wire_offset]
+            if e_visual[i] == element:
                 return current
+            if isinstance(e_visual[i], list):
+                found = find_index(element, e_visual[i], without_wires)
+                if found != 0:
+                    current.extend(found)
+                    return current
     return 0
     
     
@@ -1127,24 +975,26 @@ def find_dogs_visual(e_visual):
 
 # Finds the nearest upper level that contains a sub circuit
 def find_contains(circel, circ):
-    for item in circ.element_list:
-        if circel == item:
-            return circ
-        elif isinstance(item, (SERL, PARL)):
-            result = find_contains(circel, item)
-            if result != 0:
-                return result
+    if circ != None:
+        for item in circ.element_list:
+            if circel == item:
+                return circ
+            elif isinstance(item, (SERL, PARL)):
+                result = find_contains(circel, item)
+                if result != 0:
+                    return result
     return 0
  
  
 # Returns count of an element type in the circuit
 def circel_count(circel_type, circ):
     count = 0
-    for item in circ.element_list:
-        if item.type == circel_type:
-            count += 1
-        if isinstance(item, (SERL, PARL)):
-            count += circel_count(circel_type, item)
+    if circ != None:
+        for item in circ.element_list:
+            if item.type == circel_type:
+                count += 1
+            if isinstance(item, (SERL, PARL)):
+                count += circel_count(circel_type, item)
     return count
     
 # Returns a copy of an element
@@ -1157,59 +1007,66 @@ def clone_element(element):
 
 # Removes an element from the circuit
 def remove_circel(circel, circ):
-    for item in circ.element_list:
-        if item == circel:
-            circ.element_list.remove(item)
-            return
-        elif isinstance(item, (SERL, PARL)):
-            remove_circel(circel, item)
-            if len(item.element_list) == 0:
+    if circ != None:
+        for item in circ.element_list:
+            if item == circel:
                 circ.element_list.remove(item)
+                return
+            elif isinstance(item, (SERL, PARL)):
+                remove_circel(circel, item)
+                if len(item.element_list) == 0:
+                    circ.element_list.remove(item)
                 
+                
+# Replaces an element with another                
 def replace_circel(replacing_circel, replaced_circel, circ):
-    for i in range(len(circ.element_list)):
-        if circ.element_list[i] == replaced_circel:
-            circ.element_list[i] = replacing_circel
-            return
-        elif isinstance(circ.element_list[i] , (SERL, PARL)):
-            replace_circel(replacing_circel, replaced_circel, circ.element_list[i])
+    if circ != None:
+        for i in range(len(circ.element_list)):
+            if circ.element_list[i] == replaced_circel:
+                circ.element_list[i] = replacing_circel
+                return
+            elif isinstance(circ.element_list[i] , (SERL, PARL)):
+                replace_circel(replacing_circel, replaced_circel, circ.element_list[i])
                 
 
 # Destroys the current circuit visual                
-def remove_circuit(e_visuals):
-    for item in e_visuals:
-        if isinstance(item, (curve, box, cone, sphere, helix, cylinder)):
-            item.visible = False
-        if isinstance(item, list):
-            remove_circuit(item)
+def remove_circuit(e_visual):
+    if e_visual != None:
+        for item in e_visual:
+            if isinstance(item, (curve, box, cone, sphere, helix, cylinder)):
+                item.visible = False
+            if isinstance(item, list):
+                remove_circuit(item)
     
                 
 def check_full(circel_list, circ):
     global selected_highest_level, selected_secondary_level
     selected_secondary_level = []
     sub_full = 0
-    element_full = len(circ.element_list)
-    for item in circ.element_list:
-        if isinstance(item, (SERL, PARL)):
-            s = check_full(circel_list, item)
-            if s[1] > 0:
-                selected_secondary_level.append(item)
-            element_full += s[0]
-            sub_full += s[1]
-        if isinstance(item, CIRCEL):
-            if item in circel_list:
-                selected_secondary_level.append(item)
-                sub_full += 1
-            else:
-                element_full -= 1
-    if sub_full == len(circel_list):
-        selected_highest_level = circ
-        raise TypeError()
-    else:
-        selected_secondary_level = []
-    if len(circ.element_list) == element_full:
-        return (0, sub_full)
-    else:
+    if circ != None:
+        element_full = len(circ.element_list)
+        for item in circ.element_list:
+            if isinstance(item, (SERL, PARL)):
+                s = check_full(circel_list, item)
+                if s[1] > 0:
+                    selected_secondary_level.append(item)
+                element_full += s[0]
+                sub_full += s[1]
+            if isinstance(item, CIRCEL):
+                if item in circel_list:
+                    selected_secondary_level.append(item)
+                    sub_full += 1
+                else:
+                    element_full -= 1
+        if sub_full == len(circel_list):
+            selected_highest_level = circ
+            raise TypeError()
+        else:
+            selected_secondary_level = []
+        if len(circ.element_list) == element_full:
+            return (0, sub_full)
+        else:
+            return (-1, 0)
         return (-1, 0)
         
         
@@ -1219,24 +1076,40 @@ while (True):
     shape = scene.mouse.pick
     if start:
         time += 1
-        change_battery(circuit_visual, vec(255, 204, 102) / 255)
         dogs = find_dogs(circuit)
         dogs_visual = find_dogs_visual(circuit_visual)
-        stepper += 1
         # Euler's 
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
         if speeder * time % frame_rate == 0:
+            element_vector = []
+            element_vector.append(circuit)
+            create_element_vector(circuit)
+            junction_matrix = []
+            junction_augmented_vector = []
+            create_junction_matrix(circuit)
+            kirchoff_matrix = []
+            kirchoff_augmented_vector = []
+            create_kirchoff_matrix(circuit)
+            current_matrix = []
+            current_matrix.extend(junction_matrix)
+            current_matrix.extend(kirchoff_matrix)
+            augmented_vector = []
+            augmented_vector.extend(junction_augmented_vector)
+#            print("j",junction_augmented_vector)
+            augmented_vector.extend(kirchoff_augmented_vector)
+#            print("k",kirchoff_augmented_vector)
+#            print(current_matrix)
+#            print(augmented_vector)
+            augmented_vector = RREF(current_matrix, augmented_vector)
+#            print("augmented_vector",augmented_vector)
+            for i in range(len(element_vector)):
+                if element_vector[i].type == 'inductor':
+                    element_vector[i].charge = (augmented_vector[i] - element_vector[i].current)
+                element_vector[i].current = augmented_vector[i]
+                if element_vector[i].type == 'capacitor':
+                    element_vector[i].charge = element_vector[i].current
             for i in range(len(dogs)):
-                dogs[i].current = 2
-                dE = dogs[i].current ** 2 * HOTDOG_RESISTIVITY * dogs[i].val[1] / (dogs[i].val[1] ** 2 * pi)
-                dK = HOTDOG_SPECIFIC_HEAT / (dogs[i].val[1] * (dogs[i].val[1] ** 2 * pi) * HOTDOG_DENSITY * dE)
+                dE = dogs[i].current ** 2 * HOTDOG_RESISTIVITY * dogs[i].val[1] / (dogs[i].val[0] ** 2 * pi)
+                dK = dE / (dogs[i].val[1] * (dogs[i].val[0] ** 2 * pi) * HOTDOG_DENSITY * HOTDOG_SPECIFIC_HEAT) 
                 dogs[i].temperature += dK
                 if dogs[i].temperature > 373:
                     for shape in dogs_visual[i][1:4]:
@@ -1296,17 +1169,17 @@ while (True):
                         continue
                     if circel.type == 'battery':
                         if circel_count('battery', circuit) >= max_battery:
-                            alert('Cannot add another battery. Limit of 2.')
+                            alert('Cannot add another battery. Limit of ' + max_battery + '.')
                             select = False
                             continue
                     if circel.type == 'capacitor':
                          if circel_count('capacitor', circuit) >= max_capacitor:
-                            alert('Cannot add another capacitor. Limit of 1.')
+                            alert('Cannot add another capacitor. Limit of ' + max_capacitor + '.')
                             select = False
                             continue
                     if circel.type == 'inductor':
                         if circel_count('battery', circuit) >= max_inductor:
-                            alert('Cannot add another inductor. Limit of 1.')
+                            alert('Cannot add another inductor. Limit of '+  max_inductorr + '.')
                             select = False
                             continue
                     for shape in element[1:]:
