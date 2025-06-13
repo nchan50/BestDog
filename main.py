@@ -176,23 +176,294 @@ class PARL:
 ##################
 # COMPUTATIONAL FUNCTIONS
 
-def calculate_paths(current,depth,og):
-    if (depth < 0):
-        return 0
-    elif (current == og):
-        if current.type == "PARL":
-            return len(current.element_list)
-        elif current.type == "SERL":
-            return 1
+#returns final list of unique elements
+def create_ref_row(current,depth,og,start,ref_row):
+    if (og != current or start == True):
+        
+        # if curcuit is not well defined
+        if current == None:
+            return ref_row
+            
+        # is in series
+        elif isinstance(current, SERL):
+            ref_row.append(current)
+            for i in range(len(current.element_list)):
+                ref_row = create_ref_row(current.element_list[i],depth-1,og,False,ref_row)
+            if current.next != None:
+                ref_row = create_ref_row(current.next,depth-1,og,False,ref_row)
+            return ref_row
+        
+        # is in parallel
+        elif isinstance(current, PARL):
+            ref_row.append(current)
+            for i in range(len(current.element_list)):
+                ref_row = create_ref_row(current.element_list[i],depth-1,og,False,ref_row)
+            if current.next != None:
+                ref_row = create_ref_row(current.next,depth-1,og,False,ref_row)
+            return ref_row
+            
+        # is circuit element
         else:
-            return -1
+            if current not in ref_row:
+                ref_row.append(current)
+            return ref_row
     else:
-        if current.type == "PARL":
-            return len(current.element_list) * calculate_paths(next,depth-1,og)
-        elif current.type == "SERL":
-            return calculate_paths(next,depth-1,og)
-        else:
-            return -1
+        return ref_row
+    return -1
+
+#def create_rows(current,og,depth,start,matrix,curr_row,ref_row):
+#    #in final call, return full matrix
+#    #print(depth)
+#    # if not completed loop yet
+#
+##    print("curr row",curr_row)
+#    if (og != current or start == True):
+#
+#        # if SERL
+#        if isinstance(current, SERL):
+#            for i in range(len(current.element_list)):
+#
+#                # if element is listed
+#                if isinstance(current.element_list[i], (SERL,PARL)):
+#                    matrix = create_rows(current.element_list[i],og,depth-1,False,matrix,curr_row,ref_row)
+#                else:
+#                    for j in range(len(ref_row)):
+#                        if ref_row[j] == current.element_list[i]:
+#                            curr_row[j] = current.element_list[i]
+#
+#
+#
+#
+#            # returns the final matrix
+#            # calls function to go through the next circ
+##            print("SERL CALL")
+#
+#            #considers the next node
+##            matrix = create_rows(current.next,og,depth-1,False,matrix,curr_row,ref_row)
+#
+#            # row that accounts for junction rule (in SERIES case, currents are the same)
+#            junction_row = create_len_arr(len(ref_row))
+#            # for each possible element in the circuit
+#            for j in range(len(ref_row)):
+#                # if element is the current list (SERL/PARL) (junction)
+#                if ref_row[j] == current:
+#                    #adds 1 to start equation
+#                    junction_row[j] = 1
+#                    #for each element in the list, create a row
+#                    for i in range(len(current.element_list)):
+#                        tmp_junct_row = copy_arr(junction_row)
+#                        for k in range(len(ref_row)):
+#                            # adds -1 to set sum of branches equal to input current of list
+#                            if ref_row[k] == current.element_list[i]:
+#                                tmp_junct_row[k] = -1
+#
+#                        #append junction row to matrix for each element, since they are the same
+#                        matrix.append(tmp_junct_row)
+#
+#
+#            # row that accounts for junction rule (from current to next)
+#            junction_row = create_len_arr(len(ref_row))
+#
+#            for j in range(len(ref_row)):
+#                # if element is the current list (SERL/PARL) (junction)
+#                if ref_row[j] == current:
+#                    #adds 1 to start equation
+#                    junction_row[j] += 1
+#
+#            for j in range(len(ref_row)):
+#                # if element is the list next pointer
+#                if ref_row[j] == current.next:
+#                    #adds 1 to start equation
+#                    junction_row[j] -= 1
+#            matrix.append(junction_row)
+#
+#
+#            return matrix
+#
+#        if isinstance(current, PARL):
+#            for i in range(len(current.element_list)):
+#                tmp_curr_row = copy_arr(curr_row)
+##                print("tmp_curr_row", tmp_curr_row)
+#                # add each element to row
+#                for j in range(len(ref_row)):
+#                    if ref_row[j] == current.element_list[i]:
+#                        tmp_curr_row[j] = current.element_list[i]
+#
+#                # for each branch copy this row and create more rows
+#                # updates matrix each time
+##                print("PARL CALL")
+#
+##                matrix = create_rows(current.next,og,depth-1,False,matrix,tmp_curr_row,ref_row)
+#
+#                if isinstance(current.element_list[i], (SERL,PARL)):
+#                    matrix,curr_row = create_rows(current.element_list[i],og,depth-1,False,matrix,curr_row,ref_row)
+#                else:
+#                    for j in range(len(ref_row)):
+#                        if ref_row[j] == current.element_list[i]:
+#                            curr_row[j] = current.element_list[i]
+#
+#            # row that accounts for junction rule (within element list)
+#            junction_row = create_len_arr(len(ref_row))
+#
+#            # for each possible element in the circuit
+#            for j in range(len(ref_row)):
+#                # if element is the current list (SERL/PARL) (junction)
+#                if ref_row[j] == current:
+#                    #adds 1 to start equation
+#                    junction_row[j] = 1
+#                    #for each element include in row
+#                    for i in range(len(current.element_list)):
+#                        for k in range(len(ref_row)):
+#                            # adds -1 to set sum of branches equal to input current of list
+#                            if ref_row[k] == current.element_list[i]:
+#                                junction_row[k] = -1
+#
+#            #append junction row to matrix
+#            matrix.append(junction_row)
+#
+#
+#            # row that accounts for junction rule (from current to next)
+#            junction_row = create_len_arr(len(ref_row))
+#
+#            for j in range(len(ref_row)):
+#                # if element is the current list (SERL/PARL) (junction)
+#                if ref_row[j] == current:
+#                    #adds 1 to start equation
+#                    junction_row[j] += 1
+#
+#            for j in range(len(ref_row)):
+#                # if element is the list next pointer
+#                if ref_row[j] == current.next:
+#                    #adds 1 to start equation
+#                    junction_row[j] -= 1
+#            matrix.append(junction_row)
+#
+#
+#            # calls function to go through the next circ
+#            return matrix
+#
+##        else:
+##            print("cannot handle non-SERL/PARL")
+#
+#    # has completed loop
+#    else:
+##        matrix
+#        #append curr branch row to matrix
+#        matrix.append(curr_row)
+#        return matrix
+
+def create_rows(current,curr_rows,ref_row):
+        # if SERL
+        if isinstance(current, SERL):
+            for i in range(len(current.element_list)):
+                # if element is a list
+                if isinstance(current.element_list[i], (SERL,PARL)):
+                    curr_rows = create_rows(current.element_list[i],curr_rows,ref_row)
+                else:
+                    for k in range(len(curr_rows)):
+                        for j in range(len(ref_row)):
+                            if ref_row[j] == current.element_list[i]:
+                                curr_rows[k][j] = current.element_list[i]
+
+        elif isinstance(current, PARL):
+            # for each current path I need to muliply it and add
+            tmp_rows = []
+            for arr in curr_rows:
+                for i in range(len(current.element_list)):
+                    tmp_arr = copy_arr(arr)
+                    if isinstance(current.element_list[i], (SERL,PARL)):
+                        tmp_rows.extend(create_rows(current.element_list[i],[tmp_arr],ref_row))
+                    else:
+                        # replace arr with the
+                        for j in range(len(ref_row)):
+                            if ref_row[j] == current.element_list[i]:
+                                tmp_arr[j] = current.element_list[i]
+                                tmp_rows.append(tmp_arr)
+#                                print(tmp_arr)
+#                                if arr in curr_rows:
+#                                    curr_rows.remove(arr)
+                    
+#                        tmp_curr_rows = create_len_arr(len(curr_rows[0]))
+#                        for j in range(len(curr_rows)):
+#                            tmp_curr_rows[j] = copy_arr(curr_rows[j])
+#                        for k in range(len(tmp_curr_rows)):
+#                            for j in range(len(ref_row)):
+#                                if ref_row[j] == current.element_list[i]:
+#                                    tmp_curr_rows[k][j] = current.element_list[i]
+#                                    curr_rows.append(tmp_curr_rows)
+                
+
+            return tmp_rows
+        return curr_rows
+
+
+
+def get_first_matrix(start_node,ref_row):
+    curr_row = []
+    for i in range(len(ref_row)):
+        curr_row.append(0)
+    return create_rows(start_node,start_node,10,True,[],curr_row,ref_row)
+
+def get_augment(matrix,ref_row):
+    augment_col = create_len_arr(len(matrix))
+    for i in range(len(ref_row)):
+    
+        # if there is an element that provides voltage
+        if ref_row[i].type == "battery":
+#            print("FOUND")
+            # for each row (loop) that has the voltage source in it
+            for r in range(len(matrix)):
+            
+                #if battery is in kirchoff loop
+                if isinstance(matrix[r][i],(CIRCEL)) :
+                    augment_col[r] = augment_col[r] + matrix[r][i].val
+    return augment_col
+
+#converts the first matrix into the matrix with resistances
+def convert_matrix(matrix):
+    # for each matrix entry
+    for i in range(len(matrix)):
+        for j in range(len(matrix[i])):
+            #replace each element with its corresponding resistance
+            if isinstance(matrix[i][j],CIRCEL):
+                
+                
+                #if element is a hotdog, calculate resistance and replace matrix entry
+                if matrix[i][j].type == "hotdog":
+                    matrix[i][j] = get_dog_res(matrix[i][j])
+                elif matrix[i][j].type == "resistor":
+                    matrix[i][j] = matrix[i][j].val
+                elif matrix[i][j].type == "battery":
+                    matrix[i][j] = 0
+                elif matrix[i][j].type == "capacitor":
+                    C = matrix[i][j].val
+                else:
+                    print(matrix[i][j].type)
+#                    print("NOT HANDLED")
+#                elif matrix[i][j].type == "resistor":
+    return matrix
+
+
+def get_final_matrix(start_node):
+    ref_row = create_ref_row(start_node,10,start_node,True,[])
+    print("ref row: ",ref_row)
+    matrix = get_first_matrix(start_node,ref_row)
+    print("first matrix",matrix)
+    aug_col = get_augment(matrix,ref_row)
+    print("aug row",aug_col)
+    
+    #convert to resistance entries
+    matrix = convert_matrix(matrix)
+    print("restistance matrix", matrix)
+    
+    #output of final rref
+    matrix,sol = rref1(matrix,aug_col)
+#    print("rrefed matrix", matrix)
+#    for i in range(len(ref_row)):
+#        for
+#    print(sol)
+    return matrix
+
             
 
 
@@ -241,7 +512,24 @@ def calc_resistance(resistivity,radius,length):
 def create_dog(radius, length): #radius and length in METERS
     hotdog = CIRCEL("hotdog",HOTDOG_RESISTIVITY*pi*(radius**2))
     return hotdog
+    
+def copy_arr(arr):
+    l = []
+    for e in arr:
+        l.append(e)
+    return l
+    
+def create_len_arr(length):
+    l = []
+    for i in range(length):
+        l.append(0)
+    return l
 
+def get_dog_res(hotdog):
+    if isinstance(hotdog,CIRCEL):
+        if hotdog.type == "hotdog":
+            return HOTDOG_RESISTIVITY * hotdog.val[1] / (hotdog.val[0] ** 2 * pi)
+    perror("NOT HOT DOG")
 
 ##################
 # CIRCUIT PRESETS
