@@ -45,6 +45,7 @@ selected_objects = []
 selected_labels = []
 selected_highest_level = None
 selected_secondary_level = []
+dt = 0.000005# time step
 
 
 
@@ -186,7 +187,6 @@ class PARL:
 # COMPUTATIONAL FUNCTIONS
 
 def RREF(M, a):
-    print(M)
     back_count = 0
     for i in range(len(M)):
         for j in range(1, len(M) + 1):
@@ -211,6 +211,9 @@ def RREF(M, a):
         a_temp = a[i]
         a[i] = a[leftmost_i]
         a[leftmost_i] = a_temp
+        factor = M[i][leftmost_j]
+        a[i] = a[i] / factor
+        M[i] = [e / factor for e in M[i]]
         for k in range(i + 1, len(M) - back_count):
             factor = M[k][leftmost_j] / M[i][leftmost_j]
             a[k] -= a[i] * factor
@@ -276,12 +279,35 @@ def create_junction_matrix(circ):
             create_junction_matrix(item)
             
             
+#def create_kirchoff_loops(circ):
+#    if isinstance(circ, SERL):
+#        KCLs = [[]]
+#        for item in circ.element_list:
+#            for KCL in KCLs:
+#                KCL.append(item)
+#            if isinstance(item, (SERL, PARL)):
+#                new_KCLs =  []
+#                for KCL in KCLs:
+#                    for sub_KCL in create_kirchoff_loops(item):
+#                        branched_KCL = KCL[:]
+#                        branched_KCL.extend(sub_KCL)
+#                        new_KCLs.append(branched_KCL)
+#                KCLs.extend(new_KCLs)
+#    if isinstance(circ, PARL):
+#        KCLs = []
+#        for item in circ.element_list:
+#            KCLs.append([item])
+#            if isinstance(item, (SERL, PARL)):
+#                for sub_KCL in create_kirchoff_loops(item):
+#                    KCLs.append(sub_KCL)
+#    return KCLs
 def create_kirchoff_loops(circ):
     if isinstance(circ, SERL):
         KCLs = [[]]
         for item in circ.element_list:
-            for KCL in KCLs:
-                KCL.append(item)
+            if isinstance(item, CIRCEL):
+                for KCL in KCLs:
+                    KCL.append(item)
             if isinstance(item, (SERL, PARL)):
                 new_KCLs =  []
                 for KCL in KCLs:
@@ -290,10 +316,12 @@ def create_kirchoff_loops(circ):
                         branched_KCL.extend(sub_KCL)
                         new_KCLs.append(branched_KCL)
                 KCLs.extend(new_KCLs)
+                KCLs.remove(KCL)
     if isinstance(circ, PARL):
         KCLs = []
         for item in circ.element_list:
-            KCLs.append([item])
+            if isinstance(item, CIRCEL):
+                KCLs.append([item])
             if isinstance(item, (SERL, PARL)):
                 for sub_KCL in create_kirchoff_loops(item):
                     KCLs.append(sub_KCL)
@@ -319,10 +347,12 @@ def create_kirchoff_matrix(circ):
                         value += element.val
                     if element.type == 'capacitor':
                         value -= element.charge / element.val
-                    if element.type == 'capacitor':
+                    if element.type == 'inductor':
                         value -= element.val * -element.di / 1
         kirchoff_matrix.append(v)
         kirchoff_augmented_vector.append(value)
+        print("kirchoff_matrix",kirchoff_matrix)
+        print("kirchoff_augmented_vector",kirchoff_augmented_vector)
     
 
 ##################
@@ -416,16 +446,7 @@ def dog_ind_ser(voltage,inductance):
     circ.add_element(CIRCEL('inductor', inductance))
     return circ
 
-######
-# Hotdog and Inductor in Parallel
-def dog_ind_par(voltage, inductance):
-    batt = CIRCEL("battery",voltage)
-    circ = SERL([batt])
-    sub_circ = PARL([])
-    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-    sub_circ.add_element(CIRCEL('inductor', inductance))
-    circ.add_element(sub_circ)
-    return circ
+
     
 ######
 #Complex
@@ -446,6 +467,17 @@ def c_1():
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     return circ
 
+######
+# Hotdog and Inductor in Parallel
+def dog_ind_par(voltage, inductance):
+#    batt = CIRCEL("battery",voltage)
+#    circ = SERL([batt])
+#    sub_circ = PARL([])
+#    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+#    sub_circ.add_element(CIRCEL('inductor', inductance))
+#    circ.add_element(sub_circ)
+#    return circ
+    return c_1()
 
 # Conencts presets to buttons
 def presets(evt):
@@ -1071,7 +1103,8 @@ def check_full(circel_list, circ):
         
 while (True):
     rate(frame_rate)
-    dt = 1 / frame_rate
+#    dt = 1 / frame_rate
+#    dt = 0.2
     shape = scene.mouse.pick
     if start:
         time += 1
@@ -1097,10 +1130,11 @@ while (True):
             augmented_vector = RREF(current_matrix, augmented_vector)
             for i in range(len(element_vector)):
                 if element_vector[i].type == 'inductor':
-                    element_vector[i].charge = (augmented_vector[i] - element_vector[i].current)
+                    element_vector[i].di = abs(element_vector[i].current - element_vector[i].current) / dt
                 element_vector[i].current = augmented_vector[i]
                 if element_vector[i].type == 'capacitor':
-                    element_vector[i].charge = element_vector[i].current
+                    element_vector[i].charge += element_vector[i].current * dt
+                    print(element_vector[i].charge,element_vector[i].current * dt)
             for i in range(len(dogs)):
                 dE = dogs[i].current ** 2 * HOTDOG_RESISTIVITY * dogs[i].val[1] / (dogs[i].val[0] ** 2 * pi)
                 dK = dE / (dogs[i].val[1] * (dogs[i].val[0] ** 2 * pi) * HOTDOG_DENSITY * HOTDOG_SPECIFIC_HEAT) 
