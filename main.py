@@ -13,18 +13,20 @@ burnt, charred, perfect, undercooked, raw = 100, 75, 50, 25, 0
 max_battery, max_capacitor, max_inductor = 2, 1, 1
 frame_rate = 500
 time = 0
-speeder = 10
+speeder = 1
 
 ##################
 # GLOBAL VARS
 
+change_presets = []
+data_graphs = []
+data_curves = []
+circuit = None
+circuit_visual = None
 blanks = []
 blanks_visual = []
 externals = []
 externals_visual = []
-change_presets = []
-circuit = None
-circuit_visual = None
 start = False
 attatching = False
 stepper = 0
@@ -37,8 +39,6 @@ selected_objects = []
 selected_labels = []
 selected_highest_level = None
 selected_secondary_level = []
-data_graphs = []
-data_curves = []
 
 
 
@@ -156,18 +156,11 @@ class SERL:
         self.prev = prev
         self.next = next
     def add_element(self,elem):
-#        if (elem.type == "resistor"):
         self.element_list.append(elem)
-#    def REQ(self):
-#        req = 0;
-#        for i in self.element_list:
-#            if (i.TYPE() in ["resistor","hotdog"]):
-#                req += i.val;
-#        return req
  
  
 ######
-# SERL = PARALLEL LIST
+# PARL = PARALLEL LIST
 
 class PARL:
     def __init__(self,element_list): 
@@ -178,12 +171,6 @@ class PARL:
         self.next = next
     def add_element(self,elem):
         self.element_list.append(elem)
-#    def REQ(self):
-#        req = 0;
-#        for i in self.element_list:
-#            if (i.TYPE() in ["resistor","hotdog"]):
-#                req += 1 / i.val;
-#        return 1 / req
 
 
 ##################
@@ -241,7 +228,6 @@ def one_dog(voltage):
     batt = CIRCEL("battery",voltage)
     circ = SERL([batt])
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-#    circ.set_pn(circ,circ)
     return circ
 
 ######
@@ -251,7 +237,6 @@ def dogs_ser(voltage,n):
     circ = SERL([batt])
     for i in range(n):
         circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-#    circ.set_pn(circ,circ)
     return circ
 
 ######
@@ -261,7 +246,6 @@ def dogs_par(voltage,n):
     circ = PARL([batt])
     for i in range(n):
         circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-#    circ.set_pn(circ,circ)
     return circ
 
 ######
@@ -271,7 +255,6 @@ def dog_res_ser(voltage,resistance):
     circ = SERL([batt])
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     circ.add_element(CIRCEL('resistor', resistance))
-#    circ.set_pn(circ,circ)
     return circ
     
 ######
@@ -281,7 +264,6 @@ def dog_res_par(voltage,resistance):
     circ = PARL([batt])
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     circ.add_element(CIRCEL('resistor', resistance))
-#    circ.set_pn(circ,circ)
     return circ
 
 ######
@@ -291,7 +273,6 @@ def dog_cap_ser(voltage, capacitance):
     circ = SERL([batt])
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     circ.add_element(CIRCEL('capacitor', capacitance))
-#    circ.set_pn(circ,circ)
     return circ
 
 ######
@@ -301,7 +282,6 @@ def dog_cap_par(voltage,capacitance):
     circ = PARL([batt])
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     circ.add_element(CIRCEL('capacitor', capacitance))
-#    circ.set_pn(circ,circ)
     return circ
 
 ######
@@ -311,7 +291,6 @@ def dog_ind_ser(voltage,inductance):
     circ = SERL([batt])
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     circ.add_element(CIRCEL('inductor', inductance))
-#    circ.set_pn(circ,circ)
     return circ
 
 ######
@@ -321,20 +300,12 @@ def dog_ind_par(voltage):
     circ = SERL([batt])
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     circ.add_element(CIRCEL('inductor', inductance))
-#    circ.set_pn(circ,circ)
     return circ
 
 
 # Conencts presets to buttons
 def presets(evt):
-    global blanks
-    global blanks_visual
-    global circuit
-    global circuit_visual
-    global selected_circels
-    global selected_objects
-    global selected_labels
-    global change_presets
+    global blanks, blanks_visual, circuit, circuit_visual, selected_circels, selected_objects, selected_labels, change_presets
     if not start:
         evt.color = color.white
         evt.background = color.black
@@ -380,9 +351,7 @@ def presets(evt):
 
 # Start simulation
 def start_battery():
-    global start
-    global circuit
-    global circuit_visuals
+    global start, circuit, circuit_visuals
     try:
         if circel_count('battery', circuit) > 0:
             change_battery(circuit_visual, vec(255, 255, 179) / 255)
@@ -401,8 +370,7 @@ def change_battery(e_visuals, new_color):
 
 # Start simulation
 def stop_battery():
-    global start
-    global circuit_visual
+    global start, circuit_visual
     start = False
     change_battery(circuit_visual, color.white)
 
@@ -419,12 +387,7 @@ def dog_visual():
     
 # Adjust the radius and length of a hotdog
 def adjust_dog(evt):
-    global attatching
-    global externals
-    global externals_visual
-    global selected_circels
-    global selected_objects
-    global selected_labels
+    global attatching, externals, externals_visual, selected_circels, selected_objects, selected_labels
     if not attatching:
         for i in range(len(externals)):
             if externals[i].type == 'hotdog':
@@ -480,11 +443,7 @@ def adjust_dog(evt):
         
 # Adjust the values for an element using winput
 def adjust_circel(evt):
-    global attatching
-    global circuit_visual
-    global selected_circels
-    global selected_objects
-    global selected_labels
+    global attatching, circuit_visual, selected_circels, selected_objects, selected_labels
     if not (attatching or start):
         for i in range(len(selected_circels)):
             if selected_circels[i].type != 'hotdog':
@@ -535,11 +494,7 @@ def adjust_circel(evt):
     
 # Starts element attatchment method
 def attatch_object(evt):
-    global attatching
-    global stepper
-    global selected_circels
-    global selected_objects
-    global selected_labels
+    global attatching, stepper, selected_circels, selected_objects, selected_labels
     if attatching and not evt.checked:
         for object in selected_objects:
             for shape in object[1:]:
@@ -802,8 +757,9 @@ def create_circuit(circ):
     global circuit_visual
     if len(circ.element_list) > 0:
         circuit_visual = create_sub_circuit(circ)
-    if circ.type == 'SERL':
-        circuit_visual = circuit_loop(circuit_visual)
+    if circ.type == 'SERL' and circ != None:
+        if len(circ.element_list) > 0:
+            circuit_visual = circuit_loop(circuit_visual)
         
         
 # Finds the element with the shape in it
@@ -920,8 +876,7 @@ def remove_circuit(e_visuals):
     
                 
 def check_full(circel_list, circ):
-    global selected_highest_level
-    global selected_secondary_level
+    global selected_highest_level, selected_secondary_level
     selected_secondary_level = []
     sub_full = 0
     element_full = len(circ.element_list)
@@ -994,11 +949,13 @@ while (True):
                 selected_labels[i].visible = False
                 selected_labels[i] = label(pos = selected_objects[i][0].pos, xoffset = max(selected_objects[i][0].length, selected_objects[i][0].width) / 2, yoffset = selected_objects[i][0].height / 2, text = element_label(selected_circels[i]))
             if len(selected_circels) > 0:
-                if len(data_curves) > 0:
+                try:
                     graphed_circel = selected_circels[-1]
                     data_curves[0].plot(time / frame_rate, graphed_circel.current)
                     if graphed_circel.type == 'hotdog':
                         data_curves[1].plot(time / frame_rate, graphed_circel.temperature)
+                except TypeError:
+                    pass
         
     # Attatching an element to the circuit
     if attatching and not start:
@@ -1152,7 +1109,7 @@ while (True):
             if element != 0:
                 index = find_index(element, externals_visual)
                 circel = externals[index[0]]
-                if start or circel.type == 'hotdog' and circel.type != 'blank':
+                if not start or circel.type == 'hotdog' and circel.type != 'blank':
                     dragged_object = element
                     reposition(dragged_object, position - dragged_object[0].pos)
                     for blank_visual in blanks_visual:
@@ -1254,12 +1211,12 @@ while (True):
                             data_graph.delete()
                         data_graphs = []
                         data_curves = []
-                        current_graph = graph(title = 'Current v.s. Time', xtitle = 'Time(s)', ytitle = 'Current(A)', align = 'right')
+                        current_graph = graph(title = 'Current v.s. Time', xtitle = 'Time(s)', ytitle = 'Current(A)')
                         current_curve = gcurve(graph = current_graph)
                         data_graphs.append(current_graph)
                         data_curves.append(current_curve)
                         if circel.type == 'hotdog':
-                            temperature_graph = graph(title = 'Temperature v.s. Time', xtitle = 'Time(s)', ytitle = 'Temperature(K)', align = 'right')
+                            temperature_graph = graph(title = 'Temperature v.s. Time', xtitle = 'Time(s)', ytitle = 'Temperature(K)')
                             temperature_curve = gcurve(label = 'Temperature v.s. Time', graph = temperature_graph)
                             data_graphs.append(temperature_graph)
                             data_curves.append(temperature_curve)
