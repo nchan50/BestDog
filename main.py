@@ -206,7 +206,28 @@ def calculate_paths(current,depth,og):
     
     
 
+def rref(matrix,aug_col):
+    # for each column
+    max_row = len(matrix)
+    max_col = len(matrix[0])
+    for col in range(max_col):
+        for row in range(max_row):
+            if row != col and col < max_row:
+                s = matrix[row][col] / matrix[col][col]
+                
+                #modify aug_col
+                aug_col[row] = aug_col[row] - s * aug_col[col]
+                
+                # for each col negate
+                for j in range(len(matrix[0])):
+                    if j >= col:
+                        matrix[row][j] = matrix[row][j] - s * matrix[col][j]
+    for col in range(max_col):
+        if col < max_row:
+            aug_col[col] = aug_col[col] / matrix[col][col]
+            matrix[col][col] = 1
     
+    return matrix,aug_col
 
 ##################
 # HELPER FUNCTIONS
