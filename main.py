@@ -186,27 +186,24 @@ class PARL:
 # COMPUTATIONAL FUNCTIONS
 
 def RREF(M, a):
+    print(M)
     back_count = 0
     for i in range(len(M)):
-        for j in range(len(M)):
-            if all(x == 0 for x in M[j]) and j < len(M) - back_count:
-                zero_M = M.pop(j)
-                zero_a = a.pop(j)
+        for j in range(1, len(M) + 1):
+            if all(x == 0 for x in M[-j]) and j > back_count:
+                zero_M = M.pop(-j)
+                zero_a = a.pop(-j)
                 M.append(zero_M)
                 a.append(zero_a)
                 back_count += 1
-                j -= 1
-                print('ran')
-                
-        print("back_count",back_count)
         if i >= len(M) - back_count:
             break
         leftmost_i = i
         leftmost_j = len(M[0]) - 1
         for k in range(i, len(M) - back_count):
-            for j in range(len(M[0])):
-                if M[k][j] != 0 and j < leftmost_j:
-                    leftmost_j = j
+            for n in range(len(M[0])):
+                if M[k][n] != 0 and n < leftmost_j:
+                    leftmost_j = n
                     leftmost_i = k
         M_temp = M[i][:]
         M[i] = M[leftmost_i]
@@ -214,9 +211,6 @@ def RREF(M, a):
         a_temp = a[i]
         a[i] = a[leftmost_i]
         a[leftmost_i] = a_temp
-        factor = M[i][leftmost_j]
-        a[i] = a[i] / factor
-        M[i] = [e / factor for e in M[i]]
         for k in range(i + 1, len(M) - back_count):
             factor = M[k][leftmost_j] / M[i][leftmost_j]
             a[k] -= a[i] * factor
@@ -476,7 +470,8 @@ def presets(evt):
         except TypeError:
             pass
         if evt.text == 'One Hotdog':
-            circuit = one_dog(120, 1)
+            #circuit = one_dog(120, 1)
+            circuit = c_1()
         if evt.text == 'Hotdogs in Series':
             circuit = dogs_ser(120, 2)
         if evt.text == 'Hotdogs in Parallel':
