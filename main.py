@@ -248,18 +248,19 @@ def create_junction_matrix(circ):
             v = []
             for object in element_vector:
                 v.append(0)
-            if i == 0:
+            if i == 0 and circ.element_list[0].type != 'blank':
                 for j in range(len(element_vector)):
                     if circ == element_vector[j]: 
                         v[j] = 1
                     if circ.element_list[0] == element_vector[j]:
                         v[j] = -1
             else:
-                for j in range(len(element_vector)):
-                    if circ.element_list[i - 1] == element_vector[j]:
-                        v[j] = 1
-                    if circ.element_list[i] == element_vector[j]:
-                        v[j] = -1
+                if circ.element_list[i - 1].type != 'blank' and circ.element_list[i - 1].type != 'blank':
+                    for j in range(len(element_vector)):
+                        if circ.element_list[i - 1] == element_vector[j]:
+                            v[j] = 1
+                        if circ.element_list[i] == element_vector[j]:
+                            v[j] = -1
             junction_matrix.append(v)
             junction_augmented_vector.append(0)
     if isinstance(circ, PARL):
@@ -270,7 +271,7 @@ def create_junction_matrix(circ):
             if circ == element_vector[i]: 
                 v[i] = 1
             for j in range(len(element_vector)):
-                if element_vector[i] in circ.element_list: 
+                if element_vector[i] in circ.element_list and element_vector[i].type != 'blank': 
                     v[i] = -1
         junction_matrix.append(v)
         junction_augmented_vector.append(0)
@@ -279,28 +280,6 @@ def create_junction_matrix(circ):
             create_junction_matrix(item)
             
             
-#def create_kirchoff_loops(circ):
-#    if isinstance(circ, SERL):
-#        KCLs = [[]]
-#        for item in circ.element_list:
-#            for KCL in KCLs:
-#                KCL.append(item)
-#            if isinstance(item, (SERL, PARL)):
-#                new_KCLs =  []
-#                for KCL in KCLs:
-#                    for sub_KCL in create_kirchoff_loops(item):
-#                        branched_KCL = KCL[:]
-#                        branched_KCL.extend(sub_KCL)
-#                        new_KCLs.append(branched_KCL)
-#                KCLs.extend(new_KCLs)
-#    if isinstance(circ, PARL):
-#        KCLs = []
-#        for item in circ.element_list:
-#            KCLs.append([item])
-#            if isinstance(item, (SERL, PARL)):
-#                for sub_KCL in create_kirchoff_loops(item):
-#                    KCLs.append(sub_KCL)
-#    return KCLs
 def create_kirchoff_loops(circ):
     if isinstance(circ, SERL):
         KCLs = [[]]
@@ -336,6 +315,7 @@ def create_kirchoff_matrix(circ):
         for _ in element_vector:
             v.append(0)
         value = 0
+        has_blank = False
         for element in KCL:
             for i in range(len(element_vector)):
                 if element == element_vector[i]:
@@ -349,10 +329,11 @@ def create_kirchoff_matrix(circ):
                         value -= element.charge / element.val
                     if element.type == 'inductor':
                         value -= element.val * -element.di / 1
-        kirchoff_matrix.append(v)
-        kirchoff_augmented_vector.append(value)
-#        print("kirchoff_matrix",kirchoff_matrix)
-#        print("kirchoff_augmented_vector",kirchoff_augmented_vector)
+                    if element.type == 'blank':
+                        has_blank = True
+        if not has_blank:
+            kirchoff_matrix.append(v)
+            kirchoff_augmented_vector.append(value)
     
 
 ##################
@@ -466,6 +447,9 @@ def c_1():
     circ.add_element(sub_circ)
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     return circ
+    
+circuit = c_1()
+create_circuit(circuit)
 
 ######
 # Hotdog and Inductor in Parallel
@@ -1107,6 +1091,7 @@ while (True):
 #    dt = 0.2
     shape = scene.mouse.pick
     if start:
+        change_battery(circuit_visual, vec(255, 255, 179) / 255)
         time += 1
         dogs = find_dogs(circuit)
         dogs_visual = find_dogs_visual(circuit_visual)
@@ -1131,10 +1116,12 @@ while (True):
             for i in range(len(element_vector)):
                 if element_vector[i].type == 'inductor':
                     element_vector[i].di = abs(element_vector[i].current - element_vector[i].current) / dt
-                element_vector[i].current = augmented_vector[i]
+                if i < len(augmented_vector):
+                    element_vector[i].current = augmented_vector[i]
+                else:
+                    element_vector[i].current = 0
                 if element_vector[i].type == 'capacitor':
                     element_vector[i].charge += element_vector[i].current * dt
-                    print(element_vector[i].charge,element_vector[i].current * dt)
             for i in range(len(dogs)):
                 dE = dogs[i].current ** 2 * HOTDOG_RESISTIVITY * dogs[i].val[1] / (dogs[i].val[0] ** 2 * pi)
                 dK = dE / (dogs[i].val[1] * (dogs[i].val[0] ** 2 * pi) * HOTDOG_DENSITY * HOTDOG_SPECIFIC_HEAT) 
@@ -1166,7 +1153,7 @@ while (True):
                         data_curves[1].plot(time / frame_rate, graphed_circel.temperature)
                 except TypeError:
                     pass
-        
+            
     # Attatching an element to the circuit
     if attatching and not start:
         if len(externals) == 0:
@@ -1308,7 +1295,7 @@ while (True):
             stepper = 0
             attatch_check.checked = False
         continue
-        
+
     # Dragging elements and removing them from the circuit
     if drag:
         position = scene.mouse.pos
@@ -1350,6 +1337,7 @@ while (True):
             if element != 0:
                 index = find_index(element, circuit_visual)
                 circel = circuit
+                circel.current = 0
                 for i in index:
                     circel = circel.element_list[i - 1]
                 if not start or circel.type == 'hotdog' and circel.type != 'blank':
@@ -1379,7 +1367,7 @@ while (True):
             reposition(dragged_object, position - dragged_object[0].pos)
             continue
     dragged_object = None
-    
+
     # Selecting Elements and displaying their data
     if select:
         element = find_visual(shape, externals_visual)
