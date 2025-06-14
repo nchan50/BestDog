@@ -12,7 +12,8 @@ HOTDOG_SPECIFIC_HEAT = 3350 #J/kg*K
 count = 0
 burnt, charred, perfect, undercooked, uncooked = 100, 75, 50, 25, 0
 max_battery, max_capacitor, max_inductor = 2, 1, 1
-frame_rate = 500
+frame_rate = 1000
+dt = 0.001 / frame_rate
 time = 0
 speeder = 1
 
@@ -45,7 +46,7 @@ selected_objects = []
 selected_labels = []
 selected_highest_level = None
 selected_secondary_level = []
-dt = 0.000005# time step
+
 
 
 
@@ -57,7 +58,11 @@ scene.camera.axis = vec(30, 0, 30)
 scene.fov = pi/8
 scene.autoscale = False
 
-background = cone(pos=vec(0, -1.25 * scene.camera.pos.mag *  SCALE, 0), axis=vec(0, 1,0), texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/the_noble_hot_dog%20(1).png",length=2.5 * scene.camera.pos.mag * SCALE, radius=0.75 * scene.camera.pos.mag * SCALE)
+background = cone(pos=vec(0, -1.25 * scene.camera.pos.mag *  SCALE, 0), 
+axis=vec(0, 1,0), 
+texture="https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/the_noble_hot_dog%20(1).png",length=2.5 
+* scene.camera.pos.mag * SCALE, radius=0.75 * scene.camera.pos.mag * 
+SCALE)
 
 ##################
 # MOUSE AND KEY INPUTS
@@ -94,16 +99,25 @@ def key_pressed(evt):
 # PRESET BUTTONS
 
 scene.title = "Presets: \n"
-change_presets.append(button(text="One Hotdog", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdogs in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdogs in Parallel", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Resistor in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Resistor in Parallel", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="One Hotdog", pos=scene.title_anchor, 
+bind=presets))
+change_presets.append(button(text="Hotdogs in Series", 
+pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdogs in Parallel", 
+pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Resistor in Series", 
+pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Resistor in Parallel", 
+pos=scene.title_anchor, bind=presets))
 scene.append_to_title('\n') # so the buttons dont clip out
-change_presets.append(button(text="Hotdog and Capacitor in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Capacitor in Parallel", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Inductor in Series", pos=scene.title_anchor, bind=presets))
-change_presets.append(button(text="Hotdog and Inductor in Parallel", pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Capacitor in Series", 
+pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Capacitor in Parallel", 
+pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Inductor in Series", 
+pos=scene.title_anchor, bind=presets))
+change_presets.append(button(text="Hotdog and Inductor in Parallel", 
+pos=scene.title_anchor, bind=presets))
 
 
 ######
@@ -116,17 +130,21 @@ button(bind = stop_battery, text= 'Turn off Battery')
 scene.append_to_caption('\nMake Your Own Hot Dog: ')
 button(bind = dog_visual, text= 'Create!')
 scene.append_to_caption('\n Adjust Your Hotdogs \n')
-rs = slider(bind = adjust_dog, max = 2, min = 0.25, step = 0.1, value = 1, id = 'r')
+rs = slider(bind = adjust_dog, max = 2, min = 0.25, step = 0.1, value = 1, 
+id = 'r')
 scene.append_to_caption('Radius: ')
 rt = wtext(text = '{:1.2f}'.format(rs.value))
 scene.append_to_caption(' cm\n')
-ls = slider(bind = adjust_dog, max = 30, min = 5, step = 0.1, value = 10, id = 'l')
+ls = slider(bind = adjust_dog, max = 30, min = 5, step = 0.1, value = 10, 
+id = 'l')
 scene.append_to_caption('Length: ')
 lt = wtext(text = '{:1.2f}'.format(ls.value))
 scene.append_to_caption(' cm\n')     
-ev = winput(bind = adjust_circel, prompt = 'Adjust Circuit Element Values:', type = 'numeric')
+ev = winput(bind = adjust_circel, prompt = 'Adjust Circuit Element 
+Values:', type = 'numeric')
 scene.append_to_caption('\n')
-attatch_check = checkbox(bind = attatch_object, text= 'Attatch to Circuit!')
+attatch_check = checkbox(bind = attatch_object, text= 'Attatch to 
+Circuit!')
 
 
 ##################
@@ -329,7 +347,8 @@ def create_kirchoff_loops(circ):
 
 
 def create_kirchoff_matrix(circ):
-    global HOTDOG_RESISTIVITY, element_vector, kirchoff_matrix, kirchoff_augmented_vector
+    global HOTDOG_RESISTIVITY, element_vector, kirchoff_matrix, 
+kirchoff_augmented_vector
     KCLs = create_kirchoff_loops(circ)
     for KCL in KCLs:
         v = []
@@ -340,7 +359,8 @@ def create_kirchoff_matrix(circ):
             for i in range(len(element_vector)):
                 if element == element_vector[i]:
                     if element.type == 'hotdog':
-                        v[i] = HOTDOG_RESISTIVITY * element.val[1] / (element.val[0] ** 2 * pi)
+                        v[i] = HOTDOG_RESISTIVITY * element.val[1] / 
+(element.val[0] ** 2 * pi)
                     if element.type == 'resistor':
                         v[i] = element.val
                     if element.type == 'battery':
@@ -348,11 +368,11 @@ def create_kirchoff_matrix(circ):
                     if element.type == 'capacitor':
                         value -= element.charge / element.val
                     if element.type == 'inductor':
-                        value -= element.val * -element.di / 1
+                        value += element.val * -element.di / 1
         kirchoff_matrix.append(v)
         kirchoff_augmented_vector.append(value)
-        print("kirchoff_matrix",kirchoff_matrix)
-        print("kirchoff_augmented_vector",kirchoff_augmented_vector)
+#        print("kirchoff_matrix",kirchoff_matrix)
+#        print("kirchoff_augmented_vector",kirchoff_augmented_vector)
     
 
 ##################
@@ -447,6 +467,16 @@ def dog_ind_ser(voltage,inductance):
     return circ
 
 
+######
+# Hotdog and Inductor in Parallel
+def dog_ind_par(voltage, inductance):
+    batt = CIRCEL("battery",voltage)
+    circ = SERL([batt])
+    sub_circ = PARL([])
+    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
+    sub_circ.add_element(CIRCEL('inductor', inductance))
+    circ.add_element(sub_circ)
+    return circ
     
 ######
 #Complex
@@ -467,21 +497,10 @@ def c_1():
     circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
     return circ
 
-######
-# Hotdog and Inductor in Parallel
-def dog_ind_par(voltage, inductance):
-#    batt = CIRCEL("battery",voltage)
-#    circ = SERL([batt])
-#    sub_circ = PARL([])
-#    sub_circ.add_element(CIRCEL('hotdog', (0.01, 0.1)))
-#    sub_circ.add_element(CIRCEL('inductor', inductance))
-#    circ.add_element(sub_circ)
-#    return circ
-    return c_1()
-
 # Conencts presets to buttons
 def presets(evt):
-    global blanks, blanks_visual, circuit, circuit_visual, selected_circels, selected_objects, selected_labels, change_presets
+    global blanks, blanks_visual, circuit, circuit_visual, 
+selected_circels, selected_objects, selected_labels, change_presets
     if not start:
         evt.color = color.white
         evt.background = color.black
@@ -517,9 +536,9 @@ def presets(evt):
         if evt.text == 'Hotdog and Capacitor in Parallel':
             circuit = dog_cap_par(120, 10e-6)
         if evt.text == 'Hotdog and Inductor in Series':
-            circuit = dog_ind_ser(120, 10e-5)
+            circuit = dog_ind_ser(120, 10e-7)
         if evt.text == 'Hotdog and Inductor in Parallel':
-            circuit = dog_ind_par(120, 10e-5)
+            circuit = dog_ind_par(120, 10e-7)
         create_circuit(circuit)
 
 ##################
@@ -528,10 +547,11 @@ def presets(evt):
 
 # Start simulation
 def start_battery():
-    global attatching, start, circuit, stepper, circuit_visuals
+    global attatching, start, time, circuit, stepper, circuit_visuals
     if not attatching:
         try:
-            if circel_count('battery', circuit) > 0:
+            if circel_count('battery', circuit) > 0 :
+                time = 0
                 change_battery(circuit_visual, vec(255, 255, 179) / 255)
                 start = True
                 stepper = 0
@@ -549,8 +569,13 @@ def change_battery(e_visuals, new_color):
 
 # Start simulation
 def stop_battery():
-    global attatching, start, circuit_visual
+    global attatching, start, circuit_visual, element_vector
     if not attatching:
+        for e in element_vector:
+            if e.type == "capacitor":
+                e.charge = 0
+            if e.type == "inductor":
+                e.di = 0
         start = False
         stepper = 0
         change_battery(circuit_visual, color.white)
@@ -561,14 +586,17 @@ def dog_visual():
     global attatching
     if not attatching:
         externals.append(CIRCEL('hotdog', (0.01, 0.1)))
-        externals_visual.append(element_visual(externals[-1], create_mode = True))
+        externals_visual.append(element_visual(externals[-1], create_mode 
+= True))
         if circuit != None:
-            reposition(externals_visual[-1] , vec(0, 0, circuit_visual[0].width / 2 + 10))
+            reposition(externals_visual[-1] , vec(0, 0, 
+circuit_visual[0].width / 2 + 10))
     
     
 # Adjust the radius and length of a hotdog
 def adjust_dog(evt):
-    global attatching, externals, externals_visual, selected_circels, selected_objects, selected_labels
+    global attatching, externals, externals_visual, selected_circels, 
+selected_objects, selected_labels
     if not attatching:
         for i in range(len(externals)):
             if externals[i].type == 'hotdog':
@@ -580,32 +608,41 @@ def adjust_dog(evt):
                 last_dog_index = i
                 select_circel = selected_circels[i]
                 select_dog = selected_objects[i]
-        indices = [[last_dog_index, find_index(select_dog, circuit_visual, without_wires = False)]]
+        indices = [[last_dog_index, find_index(select_dog, circuit_visual, 
+without_wires = False)]]
         if indices[0][1] == 0 or (indices[0][1] != 0 and not start):
             if evt.id is 'r':
-                select_circel.val = (evt.value / 100, select_circel.val[1])
+                select_circel.val = (evt.value / 100, 
+select_circel.val[1])
                 for shape in select_dog:
                     shape.radius = evt.value
                 select_dog[0].height = 2 * evt.value
                 select_dog[0].width = 2 * evt.value
                 rt.text = '{:1.2f}'.format(evt.value)
             if evt.id is 'l':
-                select_circel.val = (select_circel.val[0], evt.value / 100)
+                select_circel.val = (select_circel.val[0], evt.value / 
+100)
                 select_dog[0].length = evt.value
                 select_dog[1].length = evt.value
-                select_dog[1].pos = select_dog[0].pos - vec(evt.value / 2, 0, 0)
-                select_dog[2].pos = select_dog[0].pos - vec(evt.value / 2, 0, 0)
-                select_dog[3].pos = select_dog[0].pos + vec(evt.value / 2, 0, 0)
+                select_dog[1].pos = select_dog[0].pos - vec(evt.value / 2, 
+0, 0)
+                select_dog[2].pos = select_dog[0].pos - vec(evt.value / 2, 
+0, 0)
+                select_dog[3].pos = select_dog[0].pos + vec(evt.value / 2, 
+0, 0)
                 lt.text = '{:1.2f}'.format(evt.value)
             for i in range(len(selected_circels)):
                 if select_circel == selected_circels[i]:
                     selected_labels[i].visible = False
-                    selected_labels[i] = label(pos = select_dog[0].pos, xoffset = max(select_dog[0].length, select_dog[0].width) / 2, yoffset = select_dog[0].height / 2, text = element_label(select_circel))
+                    selected_labels[i] = label(pos = select_dog[0].pos, 
+xoffset = max(select_dog[0].length, select_dog[0].width) / 2, yoffset = 
+select_dog[0].height / 2, text = element_label(select_circel))
             if indices[0][1] != 0:
                 selected_labels[last_dog_index].visible = False
                 for i in range(len(selected_objects)):
                     if select_dog != selected_objects[i]:
-                        index = find_index(selected_objects[i], circuit_visual, without_wires = False)
+                        index = find_index(selected_objects[i], 
+circuit_visual, without_wires = False)
                         comb_index = [i, index]
                         if index != 0:
                             selected_labels[i].visible = False
@@ -619,12 +656,16 @@ def adjust_dog(evt):
                     for shape in new_element:
                         shape.emissive = True
                     selected_objects[index[0]] = new_element
-                    selected_labels[index[0]] = label(pos = new_element[0].pos, xoffset = max(new_element[0].length, new_element[0].width) / 2, yoffset = new_element[0].height / 2, text = element_label(selected_circels[index[0]]))
+                    selected_labels[index[0]] = label(pos = 
+new_element[0].pos, xoffset = max(new_element[0].length, 
+new_element[0].width) / 2, yoffset = new_element[0].height / 2, text = 
+element_label(selected_circels[index[0]]))
         
         
 # Adjust the values for an element using winput
 def adjust_circel(evt):
-    global attatching, circuit_visual, selected_circels, selected_objects, selected_labels
+    global attatching, circuit_visual, selected_circels, selected_objects, 
+selected_labels
     if not (attatching or start):
         for i in range(len(selected_circels)):
             if selected_circels[i].type != 'hotdog':
@@ -647,16 +688,21 @@ def adjust_circel(evt):
                 N = 15 - exp(-sqrt(circel.val) / 50 + log(15)) + 5
                 a = (N % 1) * 2 * pi
                 element[1].coils = N
-                element[3].pos = element[2].pos + vec(10, 0, 0)  + 4 * vec(0, sin(a), cos(a) - 1)
+                element[3].pos = element[2].pos + vec(10, 0, 0)  + 4 * 
+vec(0, sin(a), cos(a) - 1)
             selected_labels[last_index].visible = False
-            selected_labels[last_index] = label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel))
-        indices = [[last_index, find_index(element, circuit_visual, without_wires = False)]]
+            selected_labels[last_index] = label(pos = element[0].pos, 
+xoffset = max(element[0].length, element[0].width) / 2, yoffset = 
+element[0].height / 2, text = element_label(circel))
+        indices = [[last_index, find_index(element, circuit_visual, 
+without_wires = False)]]
         if indices[0][1] != 0:
             selected_labels[last_index].visible = False
             circel.val = evt.number
             for i in range(len(selected_objects)):
                 if element != selected_objects[i]:
-                    index = find_index(selected_objects[i], circuit_visual, without_wires = False)
+                    index = find_index(selected_objects[i], 
+circuit_visual, without_wires = False)
                     comb_index = [i, index]
                     if index != 0:
                         selected_labels[i].visible = False
@@ -670,12 +716,16 @@ def adjust_circel(evt):
                 for shape in new_element:
                     shape.emissive = True
                 selected_objects[index[0]] = new_element
-                selected_labels[index[0]] = label(pos = new_element[0].pos, xoffset = max(new_element[0].length, new_element[0].width) / 2, yoffset = new_element[0].height / 2, text = element_label(selected_circels[index[0]]))
+                selected_labels[index[0]] = label(pos = 
+new_element[0].pos, xoffset = max(new_element[0].length, 
+new_element[0].width) / 2, yoffset = new_element[0].height / 2, text = 
+element_label(selected_circels[index[0]]))
     
     
 # Starts element attatchment method
 def attatch_object(evt):
-    global attatching, stepper, selected_circels, selected_objects, selected_labels
+    global attatching, stepper, selected_circels, selected_objects, 
+selected_labels
     evt.checked = not start
     if attatching and not evt.checked:
         for object in selected_objects:
@@ -697,38 +747,55 @@ def attatch_object(evt):
 def element_visual(e, create_mode):
     if e.type == 'blank':
         L, H, W = e.val
-        visual = [box(pos = vec(0, 0, 0), length = L, height = H, width = W, visible = False)]
-        visual.append(cone(pos = vec(-L/2, 0, 0), axis = vec(1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
-        visual.append(cone(pos = vec(L/2, 0, 0), axis = vec(-1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
+        visual = [box(pos = vec(0, 0, 0), length = L, height = H, width = 
+W, visible = False)]
+        visual.append(cone(pos = vec(-L/2, 0, 0), axis = vec(1, 0, 0), 
+radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
+        visual.append(cone(pos = vec(L/2, 0, 0), axis = vec(-1, 0, 0), 
+radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
     if e.type == 'hotdog':
         R, L = e.val
         R *=  100
         L *=  100
         visual = [
-            box(pos = vec(0, 0, 0), length = L, height = max(1.5, 2 * R), width = max(1.5, 2 * R), opacity = 0), 
-            cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = vec(1, 0, 0), color = color.red, color = vec(245, 214, 235) / 255),
-            sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red, color = vec(245, 214, 235) / 255),
-            sphere(pos =  vec(L/2, 0, 0), radius = R, color = color.red, color = vec(245, 214, 235) / 255)]
+            box(pos = vec(0, 0, 0), length = L, height = max(1.5, 2 * R), 
+width = max(1.5, 2 * R), opacity = 0), 
+            cylinder(pos = vec(-L/2, 0, 0), length = L, radius = R, axis = 
+vec(1, 0, 0), color = color.red, color = vec(245, 214, 235) / 255),
+            sphere(pos = vec(-L/2, 0, 0), radius = R, color = color.red, 
+color = vec(245, 214, 235) / 255),
+            sphere(pos =  vec(L/2, 0, 0), radius = R, color = color.red, 
+color = vec(245, 214, 235) / 255)]
         if not create_mode:
             visual[0].length += 6
-            visual.append(cone(pos = vec(-L/2 - 3, 0, 0), axis = vec(1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
-            visual.append(cone(pos = vec(L/2 + 3, 0, 0), axis = vec(-1, 0, 0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
+            visual.append(cone(pos = vec(-L/2 - 3, 0, 0), axis = vec(1, 0, 
+0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
+            visual.append(cone(pos = vec(L/2 + 3, 0, 0), axis = vec(-1, 0, 
+0), radius = 0.75, length = 5, color = vec(112, 128, 144) / 255))
     if e.type == 'battery':
         V = e.val
         V = min(V, 20)
         V = max(V, 2)
         visual = [
-            box(pos = vec(0, 0, 0), length = V, height = V, width = V, opacity = 0),
-            box(pos = vec(0, 0, 0), axis = vec(1, 0, 0), length = V, height = V, width = V)]
+            box(pos = vec(0, 0, 0), length = V, height = V, width = V, 
+opacity = 0),
+            box(pos = vec(0, 0, 0), axis = vec(1, 0, 0), length = V, 
+height = V, width = V)]
     if e.type == 'resistor':
         R = e.val
         visual = [
-            box(pos = vec(0, 0, 0), length = 9, height = 3.2, width = 3.2, opacity = 0),
-            cylinder(pos = vec(-3, 0, 0), length = 6, radius = 1, axis = vec(1, 0, 0), color = color.cyan),
-            cylinder(pos = vec(-3.25, 0, 0), length = 0.5, radius = 1.6, axis = vec(1, 0, 0), color = color.black),
-            cylinder(pos = vec(-1.5, 0, 0), length = 0.5, radius = 1.1, axis = vec(1, 0, 0), color = color.black),
-            cylinder(pos = vec(0, 0, 0), length = 0.5, radius = 1.1, axis = vec(1, 0, 0), color = color.black),
-            cylinder(pos = vec(2.75, 0, 0), length = 0.5, radius = 1.6, axis = vec(1, 0, 0), color = color.black),
+            box(pos = vec(0, 0, 0), length = 9, height = 3.2, width = 3.2, 
+opacity = 0),
+            cylinder(pos = vec(-3, 0, 0), length = 6, radius = 1, axis = 
+vec(1, 0, 0), color = color.cyan),
+            cylinder(pos = vec(-3.25, 0, 0), length = 0.5, radius = 1.6, 
+axis = vec(1, 0, 0), color = color.black),
+            cylinder(pos = vec(-1.5, 0, 0), length = 0.5, radius = 1.1, 
+axis = vec(1, 0, 0), color = color.black),
+            cylinder(pos = vec(0, 0, 0), length = 0.5, radius = 1.1, axis 
+= vec(1, 0, 0), color = color.black),
+            cylinder(pos = vec(2.75, 0, 0), length = 0.5, radius = 1.6, 
+axis = vec(1, 0, 0), color = color.black),
             sphere(pos = vec(-3, 0, 0), radius = 1.5, color = color.cyan),
             sphere(pos =  vec(3, 0, 0), radius = 1.5, color = color.cyan)]
     if e.type == 'capacitor':
@@ -737,19 +804,27 @@ def element_visual(e, create_mode):
         C = min(C, 20)
         C = max(C, 1)
         visual = [
-            box(pos = vec(0, 0, 0), length = 6, height = sqrt(C), width = sqrt(C), opacity = 0),
-            box(pos = vec(2, 0, 0), axis = vec(1, 0, 0), length = 2, height = sqrt(C), width = sqrt(C), color = color.red),
-            box(pos = vec(-2, 0, 0), axis = vec(-1, 0, 0), length = 2, height = sqrt(C), width = sqrt(C), color = color.blue)]
+            box(pos = vec(0, 0, 0), length = 6, height = sqrt(C), width = 
+sqrt(C), opacity = 0),
+            box(pos = vec(2, 0, 0), axis = vec(1, 0, 0), length = 2, 
+height = sqrt(C), width = sqrt(C), color = color.red),
+            box(pos = vec(-2, 0, 0), axis = vec(-1, 0, 0), length = 2, 
+height = sqrt(C), width = sqrt(C), color = color.blue)]
     if e.type == 'inductor':
         L = e.val
         L *= 10e5
         N = 15 - exp(-sqrt(L) / 50 + log(15)) + 5
         a = (N % 1) * 2 * pi
         visual = [
-            box(pos = vec(0, 0, 0), length = 10, height = 8.8, width = 8.8, opacity = 0),
-            helix(pos = vec(-5, 0, 0), axis = vec(1, 0, 0), length = 10, coils = N, radius = 4, thickness = 0.8, color = color.black),
-            cylinder(pos = vec(-5, 0, 4), axis = vec(0, 0, -1), length = 4, radius = 0.4, color = color.black),
-            cylinder(pos = vec(5, 0, 4) + 4 * vec(0, sin(a), cos(a) - 1), axis = vec(0, -sin(a), -cos(a)), length = 4, radius = 0.4, color = color.black)]
+            box(pos = vec(0, 0, 0), length = 10, height = 8.8, width = 
+8.8, opacity = 0),
+            helix(pos = vec(-5, 0, 0), axis = vec(1, 0, 0), length = 10, 
+coils = N, radius = 4, thickness = 0.8, color = color.black),
+            cylinder(pos = vec(-5, 0, 4), axis = vec(0, 0, -1), length = 
+4, radius = 0.4, color = color.black),
+            cylinder(pos = vec(5, 0, 4) + 4 * vec(0, sin(a), cos(a) - 1), 
+axis = vec(0, -sin(a), -cos(a)), length = 4, radius = 0.4, color = 
+color.black)]
     return visual
     
     
@@ -759,7 +834,8 @@ def element_label(e):
     if e.type == 'hotdog':
         R, L = e.val
         T = e.temperature
-        return 'Radius: ' + R + ' m\nLength: ' + L + ' m\nCurrent: ' + c + ' A\nTemperature: ' + T + ' K' 
+        return 'Radius: ' + R + ' m\nLength: ' + L + ' m\nCurrent: ' + c + 
+' A\nTemperature: ' + T + ' K' 
     if e.type == 'battery':
         V = e.val
         return 'Voltage: ' + V + ' V\nCurrent: ' + c + ' A'
@@ -769,7 +845,8 @@ def element_label(e):
     if e.type == 'capacitor':
         C = e.val
         Q = e.charge
-        return 'Capacitance: ' + C + ' F\nCurrent: ' + c + ' A\nCharge: ' + Q + ' C'
+        return 'Capacitance: ' + C + ' F\nCurrent: ' + c + ' A\nCharge: ' 
++ Q + ' C'
     if e.type == 'inductor':
         L = e.val
         return 'Inductance: ' + L + ' H\nCurrent: ' + c + ' A'
@@ -815,17 +892,19 @@ def item_count(circel_list):
 # Recursively translates all shapes in a nested list
 def reposition(e_visuals, translation):
     for item in e_visuals:
-        if not isinstance(item, (curve, box, cone, sphere, helix, cylinder)):
+        if not isinstance(item, (curve, box, cone, sphere, helix, 
+cylinder)):
             reposition(item, translation)
         else:
             if isinstance(item, curve):
                 for n in range(item.npoints):
-                    item.modify(n, pos = item.point(n)['pos'] + translation)
+                    item.modify(n, pos = item.point(n)['pos'] + 
+translation)
             else:
                 item.pos +=  translation
                 
                 
-# Recursively creates the central circuit     
+# Recursively creates the central circuit
 def create_sub_circuit(circ):
     global blanks_visual
     elements = circ.element_list
@@ -840,25 +919,41 @@ def create_sub_circuit(circ):
                     prev_box = e_visuals[-1][0]
                     current_box = element[0]
                     wire = [
-                        box(pos = prev_box.pos + (vec(0, (prev_box.height + current_box.height) / 2 + 5, 0)) / 2, length = 0, height = (prev_box.height + current_box.height) / 2 + 5, width = 0.4, visible = False), 
-                        curve(pos = [prev_box.pos + vec(prev_box.length / 2, 0, 0), prev_box.pos, prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0),
-                        prev_box.pos + vec(current_box.length / 2, (prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = color.yellow),
-                        curve(pos = [prev_box.pos + vec(-prev_box.length / 2, 0, 0), prev_box.pos, prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0),
-                        prev_box.pos + vec(-current_box.length / 2, (prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = color.yellow)]
+                        box(pos = prev_box.pos + (vec(0, (prev_box.height 
++ current_box.height) / 2 + 5, 0)) / 2, length = 0, height = 
+(prev_box.height + current_box.height) / 2 + 5, width = 0.4, visible = 
+False), 
+                        curve(pos = [prev_box.pos + vec(prev_box.length / 
+2, 0, 0), prev_box.pos, prev_box.pos + vec(0, (prev_box.height + 
+current_box.height) / 2 + 5, 0),
+                        prev_box.pos + vec(current_box.length / 2, 
+(prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = 
+color.yellow),
+                        curve(pos = [prev_box.pos + vec(-prev_box.length / 
+2, 0, 0), prev_box.pos, prev_box.pos + vec(0, (prev_box.height + 
+current_box.height) / 2 + 5, 0),
+                        prev_box.pos + vec(-current_box.length / 2, 
+(prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = 
+color.yellow)]
                     for shape in element:
-                        shape.pos += prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0)
+                        shape.pos += prev_box.pos + vec(0, 
+(prev_box.height + current_box.height) / 2 + 5, 0)
                     e_visuals.append(wire)
                 except TypeError:
                     pass
             else:
                 try:
-                    prev_pos = e_visuals[-1][0].pos + vec(e_visuals[-1][0].length / 2, 0, 0)
+                    prev_pos = e_visuals[-1][0].pos + 
+vec(e_visuals[-1][0].length / 2, 0, 0)
                     next_pos = prev_pos + vec(5, 0, 0)
                     wire = [
-                        box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
-                        curve(pos = [prev_pos, next_pos], radius = 0.2, color = color.yellow)]
+                        box(pos = (prev_pos + next_pos) / 2, length = 5, 
+height = 0.4, width = 0.4, visible = False), 
+                        curve(pos = [prev_pos, next_pos], radius = 0.2, 
+color = color.yellow)]
                     for shape in element:
-                        shape.pos += next_pos + vec(element[0].length / 2, 0, 0)
+                        shape.pos += next_pos + vec(element[0].length / 2, 
+0, 0)
                     e_visuals.append(wire)
                 except TypeError:
                     pass
@@ -870,23 +965,39 @@ def create_sub_circuit(circ):
                 try:
                     prev_box = get_last_box(e_visuals)
                     if isinstance(circ, SERL):
-                        prev_pos = prev_box.pos + vec(prev_box.length / 2, 0, 0)
+                        prev_pos = prev_box.pos + vec(prev_box.length / 2, 
+0, 0)
                         next_pos = prev_pos + vec(5, 0, 0)
                         wire = [
-                            box(pos = (prev_pos + next_pos) / 2, length = 5, height = 0.4, width = 0.4, visible = False), 
-                            curve(pos = [prev_pos, next_pos], radius = 0.2, color = color.yellow)]
+                            box(pos = (prev_pos + next_pos) / 2, length = 
+5, height = 0.4, width = 0.4, visible = False), 
+                            curve(pos = [prev_pos, next_pos], radius = 
+0.2, color = color.yellow)]
                         e_visuals.append(wire)
-                        reposition(sub_e_visuals, next_pos + vec(get_first_box(sub_e_visuals).length / 2, 0, 0))
+                        reposition(sub_e_visuals, next_pos + 
+vec(get_first_box(sub_e_visuals).length / 2, 0, 0))
                     if isinstance(circ, PARL):
                         current_box = get_first_box(sub_e_visuals)
                         wire = [
-                            box(pos = prev_box.pos + (vec(0, (prev_box.height + current_box.height) / 2 + 5, 0)) / 2, length = 0, height = (prev_box.height + current_box.height) / 2 + 5, width = 0.4, visible = False), 
-                            curve(pos = [prev_box.pos + vec(prev_box.length / 2, 0, 0), prev_box.pos, prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0),
-                            prev_box.pos + vec(current_box.length / 2, (prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = color.yellow),
-                            curve(pos = [prev_box.pos + vec(-prev_box.length / 2, 0, 0), prev_box.pos, prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0),
-                            prev_box.pos + vec(-current_box.length / 2, (prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = color.yellow)]
+                            box(pos = prev_box.pos + (vec(0, 
+(prev_box.height + current_box.height) / 2 + 5, 0)) / 2, length = 0, 
+height = (prev_box.height + current_box.height) / 2 + 5, width = 0.4, 
+visible = False), 
+                            curve(pos = [prev_box.pos + 
+vec(prev_box.length / 2, 0, 0), prev_box.pos, prev_box.pos + vec(0, 
+(prev_box.height + current_box.height) / 2 + 5, 0),
+                            prev_box.pos + vec(current_box.length / 2, 
+(prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = 
+color.yellow),
+                            curve(pos = [prev_box.pos + 
+vec(-prev_box.length / 2, 0, 0), prev_box.pos, prev_box.pos + vec(0, 
+(prev_box.height + current_box.height) / 2 + 5, 0),
+                            prev_box.pos + vec(-current_box.length / 2, 
+(prev_box.height + current_box.height) / 2 + 5, 0)], radius = 0.2, color = 
+color.yellow)]
                         e_visuals.append(wire)
-                        reposition(sub_e_visuals, prev_box.pos + vec(0, (prev_box.height + current_box.height) / 2 + 5, 0))
+                        reposition(sub_e_visuals, prev_box.pos + vec(0, 
+(prev_box.height + current_box.height) / 2 + 5, 0))
                 except TypeError:
                     pass
                 e_visuals.append(sub_e_visuals)
@@ -914,13 +1025,17 @@ def create_sub_circuit(circ):
                     element[0].length = l
                     for n in range(element[1].npoints):
                         if n == 1 or n == 2:
-                            element[1].modify(n, pos = element[1].point(n)['pos'] + vec(l / 2, 0, 0))
+                            element[1].modify(n, pos = 
+element[1].point(n)['pos'] + vec(l / 2, 0, 0))
                     for n in range(element[2].npoints):
                         if n == 1 or n == 2:
-                            element[2].modify(n, pos = element[2].point(n)['pos'] - vec(l / 2, 0, 0))
+                            element[2].modify(n, pos = 
+element[2].point(n)['pos'] - vec(l / 2, 0, 0))
             l += 0.4
-    reposition(e_visuals, -vec(max_l + min_l, max_h + min_h, max_w + min_w) / 2)
-    e_visuals.insert(0, box(pos = vec(0, 0, 0), length = l, height = h, width = w, visible = False))
+    reposition(e_visuals, -vec(max_l + min_l, max_h + min_h, max_w + 
+min_w) / 2)
+    e_visuals.insert(0, box(pos = vec(0, 0, 0), length = l, height = h, 
+width = w, visible = False))
     return e_visuals
     
     
@@ -932,8 +1047,12 @@ def circuit_loop(e_visuals):
     prev_pos = last_box.pos + vec(last_box.length / 2, 0, 0)
     next_pos = first_box.pos - vec(first_box.length / 2, 0, 0)
     wire = [
-        box(pos = (prev_pos + next_pos + vec(0, 0, circ_box.width / 2 + 5)) / 2, length = circ_box.length + 10.4, height = 0.4, width = circ_box.width / 2 + 5.4, visible = False), 
-        curve(pos = [prev_pos, prev_pos + vec(5, 0, 0), prev_pos + vec(5, 0, circ_box.width / 2 + 5), next_pos + vec(-5, 0, circ_box.width / 2 + 5), next_pos + vec(-5, 0, 0), next_pos], radius = 0.2, color = color.yellow)]
+        box(pos = (prev_pos + next_pos + vec(0, 0, circ_box.width / 2 + 
+5)) / 2, length = circ_box.length + 10.4, height = 0.4, width = 
+circ_box.width / 2 + 5.4, visible = False), 
+        curve(pos = [prev_pos, prev_pos + vec(5, 0, 0), prev_pos + vec(5, 
+0, circ_box.width / 2 + 5), next_pos + vec(-5, 0, circ_box.width / 2 + 5), 
+next_pos + vec(-5, 0, 0), next_pos], radius = 0.2, color = color.yellow)]
     e_visuals.append(wire)
     return e_visuals
  
@@ -1057,14 +1176,16 @@ def replace_circel(replacing_circel, replaced_circel, circ):
                 circ.element_list[i] = replacing_circel
                 return
             elif isinstance(circ.element_list[i] , (SERL, PARL)):
-                replace_circel(replacing_circel, replaced_circel, circ.element_list[i])
+                replace_circel(replacing_circel, replaced_circel, 
+circ.element_list[i])
                 
 
 # Destroys the current circuit visual                
 def remove_circuit(e_visual):
     if e_visual != None:
         for item in e_visual:
-            if isinstance(item, (curve, box, cone, sphere, helix, cylinder)):
+            if isinstance(item, (curve, box, cone, sphere, helix, 
+cylinder)):
                 item.visible = False
             if isinstance(item, list):
                 remove_circuit(item)
@@ -1100,18 +1221,20 @@ def check_full(circel_list, circ):
             return (-1, 0)
         return (-1, 0)
         
-        
+     
+first_run = True 
+     
 while (True):
     rate(frame_rate)
 #    dt = 1 / frame_rate
 #    dt = 0.2
     shape = scene.mouse.pick
     if start:
-        time += 1
+        time += dt
         dogs = find_dogs(circuit)
         dogs_visual = find_dogs_visual(circuit_visual)
         # Euler's 
-        if speeder * time % frame_rate == 0:
+        if int(time / dt) % speeder == 0::
             element_vector = []
             element_vector.append(circuit)
             create_element_vector(circuit)
@@ -1130,40 +1253,61 @@ while (True):
             augmented_vector = RREF(current_matrix, augmented_vector)
             for i in range(len(element_vector)):
                 if element_vector[i].type == 'inductor':
-                    element_vector[i].di = abs(element_vector[i].current - element_vector[i].current) / dt
+                    element_vector[i].di = (augmented_vector[i] - 
+element_vector[i].current) / dt
+                    print(element_vector[i].di,augmented_vector[i] - 
+element_vector[i].current)
                 element_vector[i].current = augmented_vector[i]
                 if element_vector[i].type == 'capacitor':
-                    element_vector[i].charge += element_vector[i].current * dt
-                    print(element_vector[i].charge,element_vector[i].current * dt)
+                    element_vector[i].charge += element_vector[i].current 
+* dt
+#                    
+print(element_vector[i].charge,element_vector[i].current * dt)
             for i in range(len(dogs)):
-                dE = dogs[i].current ** 2 * HOTDOG_RESISTIVITY * dogs[i].val[1] / (dogs[i].val[0] ** 2 * pi)
-                dK = dE / (dogs[i].val[1] * (dogs[i].val[0] ** 2 * pi) * HOTDOG_DENSITY * HOTDOG_SPECIFIC_HEAT) 
+                dE = dogs[i].current ** 2 * HOTDOG_RESISTIVITY * 
+dogs[i].val[1] / (dogs[i].val[0] ** 2 * pi)
+                dK = dE / (dogs[i].val[1] * (dogs[i].val[0] ** 2 * pi) * 
+HOTDOG_DENSITY * HOTDOG_SPECIFIC_HEAT) 
                 dogs[i].temperature += dK
                 if dogs[i].temperature > 373:
                     for shape in dogs_visual[i][1:4]:
                         shape.texture = None
                         shape.color = color.black
                 elif dogs[i].temperature > 353:
-                    dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_texture.png"
-                    dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
-                    dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
+                    dogs_visual[i][1].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_texture.png"
+                    dogs_visual[i][2].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
+                    dogs_visual[i][3].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_charred_cap.png"
                 elif dogs[i].temperature > 333:
-                    dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_texture.png"
-                    dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
-                    dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
+                    dogs_visual[i][1].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_texture.png"
+                    dogs_visual[i][2].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
+                    dogs_visual[i][3].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_perfect_cap.png"
                 elif dogs[i].temperature > 313:
-                    dogs_visual[i][1].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
-                    dogs_visual[i][2].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
-                    dogs_visual[i][3].texture = "https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
+                    dogs_visual[i][1].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
+                    dogs_visual[i][2].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
+                    dogs_visual[i][3].texture = 
+"https://raw.githubusercontent.com/nchan50/BestDog/refs/heads/main/hotdog_undercooked_texture.png"
             for i in range(len(selected_circels)):
                 selected_labels[i].visible = False
-                selected_labels[i] = label(pos = selected_objects[i][0].pos, xoffset = max(selected_objects[i][0].length, selected_objects[i][0].width) / 2, yoffset = selected_objects[i][0].height / 2, text = element_label(selected_circels[i]))
+                selected_labels[i] = label(pos = 
+selected_objects[i][0].pos, xoffset = max(selected_objects[i][0].length, 
+selected_objects[i][0].width) / 2, yoffset = selected_objects[i][0].height 
+/ 2, text = element_label(selected_circels[i]))
             if len(selected_circels) > 0:
                 try:
                     graphed_circel = selected_circels[-1]
-                    data_curves[0].plot(time / frame_rate, graphed_circel.current)
+                    data_curves[0].plot(time / frame_rate, 
+graphed_circel.current)
                     if graphed_circel.type == 'hotdog':
-                        data_curves[1].plot(time / frame_rate, graphed_circel.temperature)
+                        data_curves[1].plot(time / frame_rate, 
+graphed_circel.temperature)
                 except TypeError:
                     pass
         
@@ -1196,18 +1340,24 @@ while (True):
                         select = False
                         continue
                     if circel.type == 'battery':
-                        if circel_count('battery', circuit) >= max_battery:
-                            alert('Cannot add another battery. Limit of ' + max_battery + '.')
+                        if circel_count('battery', circuit) >= 
+max_battery:
+                            alert('Cannot add another battery. Limit of ' 
++ max_battery + '.')
                             select = False
                             continue
                     if circel.type == 'capacitor':
-                         if circel_count('capacitor', circuit) >= max_capacitor:
-                            alert('Cannot add another capacitor. Limit of ' + max_capacitor + '.')
+                         if circel_count('capacitor', circuit) >= 
+max_capacitor:
+                            alert('Cannot add another capacitor. Limit of 
+' + max_capacitor + '.')
                             select = False
                             continue
                     if circel.type == 'inductor':
-                        if circel_count('battery', circuit) >= max_inductor:
-                            alert('Cannot add another inductor. Limit of '+  max_inductorr + '.')
+                        if circel_count('battery', circuit) >= 
+max_inductor:
+                            alert('Cannot add another inductor. Limit of 
+'+  max_inductorr + '.')
                             select = False
                             continue
                     for shape in element[1:]:
@@ -1215,7 +1365,9 @@ while (True):
                         shape.opacity = 0.3
                     selected_objects.append(element)
                     selected_circels.append(circel)
-                    selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
+                    selected_labels.append(label(pos = element[0].pos, 
+xoffset = max(element[0].length, element[0].width) / 2, yoffset = 
+element[0].height / 2, text = element_label(circel)))
                     stepper += 1
                     select = False
         if stepper == 2:
@@ -1236,17 +1388,22 @@ while (True):
                         if circel not in selected_circels:
                             selected_objects.append(element)
                             selected_circels.append(circel)
-                            selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
+                            selected_labels.append(label(pos = 
+element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, 
+yoffset = element[0].height / 2, text = element_label(circel)))
                         else:
                             for i in range(len(selected_circels)):
                                 if selected_circels[i] == circel:
-                                    selected_circels.remove(selected_circels[i])
+                                    
+selected_circels.remove(selected_circels[i])
                                     selected_labels[i].visible = False
-                                    selected_labels.remove(selected_labels[i])
+                                    
+selected_labels.remove(selected_labels[i])
                                     for shape in selected_objects[i][1:]:
                                         shape.emissive = False
                                         shape.opacity = 1
-                                    selected_objects.remove(selected_objects[i])
+                                    
+selected_objects.remove(selected_objects[i])
                 select = False
             if breaker:
                 try:
@@ -1256,7 +1413,8 @@ while (True):
                     stepper += 1
                 breaker = False
         if stepper == 4:
-            SERL_PARL = input('Connect in series(SERL) or parallel(PARL) or EXIT: ')
+            SERL_PARL = input('Connect in series(SERL) or parallel(PARL) 
+or EXIT: ')
             if SERL_PARL == 'SERL' or SERL_PARL == 'PARL':
                 stepper += 1
             elif SERL_PARL == 'EXIT':
@@ -1271,11 +1429,14 @@ while (True):
                     new_sub_circ = SERL([])
                 if SERL_PARL == 'PARL':
                     new_sub_circ = PARL([])
-                if len(selected_secondary_level) == len(selected_highest_level.element_list):
+                if len(selected_secondary_level) == 
+len(selected_highest_level.element_list):
                     new_sub_circ.add_element(selected_highest_level)
                     if selected_highest_level != circuit:
-                        circuit_level = find_contains(selected_highest_level, circuit)
-                        circuit_level.element_list.remove(selected_highest_level)
+                        circuit_level = 
+find_contains(selected_highest_level, circuit)
+                        
+circuit_level.element_list.remove(selected_highest_level)
                         circuit_level.add_element(new_sub_circ)
                     else:
                         circuit = new_sub_circ
@@ -1286,7 +1447,8 @@ while (True):
                         sub_circ = SERL([])
                     for secondary in selected_secondary_level:
                         sub_circ.add_element(secondary)
-                        selected_highest_level.element_list.remove(secondary)
+                        
+selected_highest_level.element_list.remove(secondary)
                     new_sub_circ.add_element(sub_circ)
                     selected_highest_level.add_element(new_sub_circ)
                 new_sub_circ.add_element(selected_circels[0])
@@ -1319,13 +1481,17 @@ while (True):
             if element != 0:
                 index = find_index(element, externals_visual)
                 circel = externals[index[0]]
-                if not start or circel.type == 'hotdog' and circel.type != 'blank':
+                if not start or circel.type == 'hotdog' and circel.type != 
+'blank':
                     dragged_object = element
-                    reposition(dragged_object, position - dragged_object[0].pos)
+                    reposition(dragged_object, position - 
+dragged_object[0].pos)
                     for blank_visual in blanks_visual:
                         if mag(blank_visual[0].pos - position) < 5:
-                            blank_index = find_index(blank_visual, circuit_visual)
-                            blank_visual_index = find_index(blank_visual, circuit_visual, without_wires = False)
+                            blank_index = find_index(blank_visual, 
+circuit_visual)
+                            blank_visual_index = find_index(blank_visual, 
+circuit_visual, without_wires = False)
                             blank = circuit
                             for i in blank_index:
                                 blank = blank.element_list[i - 1]
@@ -1342,22 +1508,26 @@ while (True):
                                 object = object[i]
                             for i in range(len(selected_objects)):
                                 if selected_objects[i] == element:
-                                    selected_circels.remove(selected_circels[i])
+                                    
+selected_circels.remove(selected_circels[i])
                                     selected_objects.remove(element)
                                     selected_labels[i].visible = False
-                                    selected_labels.remove(selected_labels[i])
+                                    
+selected_labels.remove(selected_labels[i])
             element = find_visual(shape, circuit_visual)
             if element != 0:
                 index = find_index(element, circuit_visual)
                 circel = circuit
                 for i in index:
                     circel = circel.element_list[i - 1]
-                if not start or circel.type == 'hotdog' and circel.type != 'blank':
+                if not start or circel.type == 'hotdog' and circel.type != 
+'blank':
                     object = clone_element(element)
                     if not start:
                         remove_circel(circel, circuit)
                     else:
-                        blank = CIRCEL('blank', (element[0].length, element[0].height, element[0].width))
+                        blank = CIRCEL('blank', (element[0].length, 
+element[0].height, element[0].width))
                         blanks.append(blank)
                         replace_circel(blank, circel, circuit)
                     remove_circuit(circuit_visual)
@@ -1370,7 +1540,8 @@ while (True):
                     externals_visual.append(object)
                     create_circuit(circuit)
                     dragged_object = object
-                    reposition(dragged_object, position - dragged_object[0].pos)
+                    reposition(dragged_object, position - 
+dragged_object[0].pos)
                     for i in range(len(selected_objects)):
                         if selected_objects[i] == element:
                             selected_objects[i] = object
@@ -1393,7 +1564,9 @@ while (True):
                 if circel not in selected_circels:
                     selected_objects.append(element)
                     selected_circels.append(circel)
-                    selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
+                    selected_labels.append(label(pos = element[0].pos, 
+xoffset = max(element[0].length, element[0].width) / 2, yoffset = 
+element[0].height / 2, text = element_label(circel)))
                 else:
                     for shape in element:
                         shape.emissive = False
@@ -1415,19 +1588,24 @@ while (True):
                 if circel not in selected_circels:
                     selected_objects.append(element)
                     selected_circels.append(circel)
-                    selected_labels.append(label(pos = element[0].pos, xoffset = max(element[0].length, element[0].width) / 2, yoffset = element[0].height / 2, text = element_label(circel)))
+                    selected_labels.append(label(pos = element[0].pos, 
+xoffset = max(element[0].length, element[0].width) / 2, yoffset = 
+element[0].height / 2, text = element_label(circel)))
                     if start:
                         for data_graph in data_graphs:
                             data_graph.delete()
                         data_graphs = []
                         data_curves = []
-                        current_graph = graph(title = 'Current v.s. Time', xtitle = 'Time(s)', ytitle = 'Current(A)')
+                        current_graph = graph(title = 'Current v.s. Time', 
+xtitle = 'Time(s)', ytitle = 'Current(A)')
                         current_curve = gcurve(graph = current_graph)
                         data_graphs.append(current_graph)
                         data_curves.append(current_curve)
                         if circel.type == 'hotdog':
-                            temperature_graph = graph(title = 'Temperature v.s. Time', xtitle = 'Time(s)', ytitle = 'Temperature(K)')
-                            temperature_curve = gcurve(label = 'Temperature v.s. Time', graph = temperature_graph)
+                            temperature_graph = graph(title = 'Temperature 
+v.s. Time', xtitle = 'Time(s)', ytitle = 'Temperature(K)')
+                            temperature_curve = gcurve(label = 
+'Temperature v.s. Time', graph = temperature_graph)
                             data_graphs.append(temperature_graph)
                             data_curves.append(temperature_curve)
                 else:
